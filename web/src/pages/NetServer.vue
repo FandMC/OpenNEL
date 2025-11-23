@@ -37,7 +37,11 @@
       <div class="form">
         <input v-model="newRoleName" class="input" placeholder="输入角色名称" />
         <div class="row-actions">
-          <button class="btn" @click="randomRoleName">随机名字</button>
+          <div class="row-actions-inner">
+            <button class="btn" @click="randomRoleName('网易')">随机名字/网易</button>
+            <button class="btn" @click="randomRoleName('离线')">随机名字/离线</button>
+            <button class="btn" @click="randomRoleName('中文')">随机名字/中文</button>
+          </div>
           <button class="btn btn-primary" @click="createRole">添加</button>
         </div>
       </div>
@@ -53,6 +57,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import appConfig from '../config/app.js'
 import Modal from '../components/Modal.vue'
 import Dropdown from '../components/Dropdown.vue'
+import { RandomName } from '../utils/random_name.js'
 const servers = ref([])
 const connected = ref(false)
 const notlogin = ref(false)
@@ -95,22 +100,21 @@ function startJoin() {
   try { socket.send(JSON.stringify({ type: 'start_proxy', serverId: joinServerId.value, serverName: joinServerName.value, roleId: rid })) } catch {}
   showJoin.value = false
 }
-async function randomRoleName() {
-  try {
-    const url = appConfig.getRandomNameUrl()
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data && data.success && data.name) {
-      newRoleName.value = data.name
-      return
-    }
-  } catch {}
-  const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const digits = '0123456789'
-  const pool = letters + digits
-  let n = ''
-  for (let i = 0; i < 12; i++) n += pool[Math.floor(Math.random() * pool.length)]
-  newRoleName.value = n
+async function randomRoleName(type) {
+  switch (type) {
+    case '网易':
+      newRoleName.value = (await RandomName.official()) ?? RandomName.offline()
+      break
+    case '离线':
+      newRoleName.value = RandomName.offline()
+      break
+    case '中文':
+      newRoleName.value = RandomName.gb2312()
+      break
+    default:
+      newRoleName.value = RandomName.offline()
+      break
+  }
 }
 function createRole() {
   const name = (newRoleName.value || '').trim()
@@ -195,5 +199,6 @@ onUnmounted(() => {
 .section-title { font-size: 14px; font-weight: 600; }
 .empty-tip { opacity: 0.7; }
 .form { display: grid; gap: 8px; }
-.row-actions { display: flex; gap: 8px; }
+.row-actions { display: flex; gap: 8px; flex-direction: column; }
+.row-actions-inner { display: flex; gap: 8px; flex-direction: row; justify-content: space-between; }
 </style>
