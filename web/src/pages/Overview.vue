@@ -11,6 +11,7 @@
     <div class="card accounts">
       <div class="card-title">
         账号
+        <button class="add-btn close-all-games-btn" @click="closeAllGames">关闭所有通道</button>
         <button class="add-btn" @click="showAdd = true">添加账号</button>
       </div>
       <div class="card-body">
@@ -100,6 +101,9 @@ const neteasePassword = ref('')
 const connected = ref(false)
 const connecting = ref(true)
 let socket
+// 添加游戏会话相关的变量
+const gameSessions = ref([])
+
 const freeMessage = ref('')
 const freeBusy = ref(false)
 const freeLevel = ref('')
@@ -163,6 +167,49 @@ function removeAccount(acc) {
   try { socket.send(JSON.stringify({ type: 'delete_account', entityId: acc.entityId })) } catch {}
 }
 
+// 添加关闭所有游戏的函数
+function closeAllGames() {
+  if (!socket || socket.readyState !== 1) {
+    if (notify) notify('连接错误', 'WebSocket未连接', 'error')
+    return
+  }
+  
+  // 首先查询所有游戏会话
+  try {
+    socket.send(JSON.stringify({ type: 'query_game_session' }))
+    
+    // 等待服务器响应后处理关闭操作
+    // 这里我们添加一个临时的消息处理器来处理查询结果
+    const originalOnMessage = socket.onmessage
+    socket.onmessage = function(e) {
+      // 先调用原始的消息处理函数
+      if (originalOnMessage) originalOnMessage.call(this, e)
+      
+      let msg
+      try { msg = JSON.parse(e.data) } catch { msg = null }
+      
+      if (msg && msg.type === 'query_game_session' && Array.isArray(msg.items)) {
+        // 获取到会话列表后，关闭所有会话
+        if (msg.items.length > 0) {
+          const identifiers = msg.items.map(item => item.Identifier || item.identifier)
+          try {
+            socket.send(JSON.stringify({ type: 'shutdown_game', identifiers: identifiers }))
+            if (notify) notify('操作成功', `正在关闭${identifiers.length}个游戏会话`, 'ok')
+          } catch (err) {
+            if (notify) notify('关闭失败', '无法发送关闭请求', 'error')
+          }
+        } else {
+          if (notify) notify('提示', '当前没有运行的游戏会话', 'info')
+        }
+        
+        // 恢复原始的消息处理函数
+        socket.onmessage = originalOnMessage
+      }
+    }
+  } catch (err) {
+    if (notify) notify('查询失败', '无法查询游戏会话', 'error')
+  }
+}
 const statusText = computed(() => {
   if (connecting.value) return '连接中'
   return connected.value ? '已连接' : '未连接'
@@ -351,6 +398,8 @@ function confirmNotice() {
 .accounts .add-btn { padding: 6px 10px; font-size: 14px; border: 1px solid var(--glass-border); background: var(--glass-surface); color: var(--color-text); border-radius: 8px; cursor: pointer; transition: opacity 200ms ease, transform 100ms ease; backdrop-filter: blur(var(--glass-blur)); }
 .accounts .add-btn:hover { opacity: 0.9; }
 .accounts .add-btn:active { transform: scale(0.98); }
+/* 关闭所有游戏按钮的特殊样式 */
+.accounts .close-all-games-btn { color: #ef4444; }
 .account-list {
   list-style: none;
   margin: 0;
