@@ -153,8 +153,19 @@ onMounted(() => {
       } else if (msg.type === 'servers_error') {
       } else if (msg.type === 'accounts' && Array.isArray(msg.items)) {
         accounts.value = msg.items
+        // 自动选择唯一账号
+        if (msg.items.length === 1) {
+          const accountId = msg.items[0].entityId
+          selectedAccountId.value = accountId
+          try { socket.send(JSON.stringify({ type: 'select_account', entityId: accountId })) } catch {}
+          try { socket.send(JSON.stringify({ type: 'open_server', serverId: joinServerId.value, serverName: joinServerName.value })) } catch {}
+        }
       } else if (msg.type === 'server_roles' && Array.isArray(msg.items)) {
         roles.value = msg.items
+        // 自动选择唯一角色
+        if (msg.items.length === 1) {
+          selectedRoleId.value = msg.items[0].id
+        }
         if (msg.createdName) {
           const found = roles.value.find(r => r.name === msg.createdName)
           if (found) selectedRoleId.value = found.id
