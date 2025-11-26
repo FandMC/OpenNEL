@@ -398,7 +398,7 @@ function confirmNotice() {
   transform: scale(0.98);
 }
 .btn.secondary {
-  background: var(--color-background-soft);
+  background: var(--glass-surface);
 }
 
 .btn.btn-primary {

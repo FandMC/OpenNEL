@@ -95,6 +95,7 @@ internal class WebSocketServer
         if (path == "/") path = "/index.html";
         if (path == "/favicon.ico") path = "/favicon.ico";
         if (path == "/assets/favicon-DkNf_H3x.ico") path = "/assets/favicon-DkNf_H3x.ico";
+        
         var filePath = Path.GetFullPath(Path.Combine(root, path.TrimStart('/')));
         if (!filePath.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
         {

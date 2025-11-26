@@ -27,6 +27,11 @@ export default defineConfig({
       const rOrigin = `${ru.protocol}//${ru.host}`
       const rPath = `${ru.pathname}${ru.search || ''}`
 
+      const p = process.env.VITE_PLUGIN_LIST_URL || 'https://api.opennel.top/v1/get/pluginlist'
+      const pu = new URL(p)
+      const pOrigin = `${pu.protocol}//${pu.host}`
+      const pPath = `${pu.pathname}${pu.search || ''}`
+
       return {
         '/nel-announcement': {
           target: aOrigin,
@@ -37,6 +42,11 @@ export default defineConfig({
           target: rOrigin,
           changeOrigin: true,
           rewrite: () => rPath,
+        },
+        '/nel-plugin-list': {
+          target: pOrigin,
+          changeOrigin: true,
+          rewrite: () => pPath,
         },
       }
     })()

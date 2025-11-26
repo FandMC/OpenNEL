@@ -22,7 +22,7 @@ function close() { emit('update:modelValue', false) }
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;

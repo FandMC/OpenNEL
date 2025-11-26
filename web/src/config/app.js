@@ -18,6 +18,12 @@ export const getWsUrl = () => {
   const authority = port ? `${host}:${port}` : getDefault()
   return `${proto}//${authority}/ws`
 }
+const getPluginListUrl = () => {
+  const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_PLUGIN_LIST_URL') : null
+  const fromEnv = typeof import.meta !== 'undefined' ? import.meta.env && import.meta.env.VITE_PLUGIN_LIST_URL : null
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV
+  return fromStorage || fromEnv || (isDev ? '/nel-plugin-list' : '/nel-plugin-list')
+}
 const getRandomNameUrl = () => {
   const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_RANDOM_NAME_URL') : null
   const fromEnv = typeof import.meta !== 'undefined' ? import.meta.env && import.meta.env.VITE_RANDOM_NAME_URL : null
@@ -67,4 +73,4 @@ const getAboutContributors = () => {
   const arr = v.split('\n').map(s => s.trim()).filter(s => s)
   return arr
 }
-export default { getWsUrl, getRandomNameUrl, getAnnouncementUrl, getAnnouncementTTL, getNoticeKey, getNoticeText, getAboutCopyright, getAboutJoin, getAboutContributors }
+export default { getWsUrl, getPluginListUrl, getRandomNameUrl, getAnnouncementUrl, getAnnouncementTTL, getNoticeKey, getNoticeText, getAboutCopyright, getAboutJoin, getAboutContributors }

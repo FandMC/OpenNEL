@@ -3,25 +3,13 @@
     <div class="header">
       <div class="title">游戏</div>
     </div>
-    <div v-if="sessions.length > 0" class="list">
-      <div v-for="s in sessions" :key="s.id" class="row">
-        <div class="info">
-          <div class="server">{{ s.serverName }}</div>
-          <div class="player">{{ s.characterName }} · {{ s.type }}</div>
-          <div class="ip">{{ s.statusText }} · 进度 {{ s.progressValue }}%</div>
-        </div>
-        <div class="actions">
-          <button class="btn" @click="copyIp(s.localAddress)">复制地址</button>
-        </div>
-      </div>
-    </div>
     <div v-if="sessions.length === 0" class="empty-top">暂无会话</div>
     <div class="list" v-else>
       <div v-for="s in sessions" :key="s.id" class="row">
         <div class="info">
           <div class="server">{{ s.serverName }}</div>
           <div class="player">{{ s.characterName }} · {{ s.type }}</div>
-          <div class="ip">{{ s.statusText }} · 进度 {{ s.progressValue }}%</div>
+          <div class="ip">{{ s.statusText }}</div>
         </div>
         <div class="actions">
           <button class="btn" @click="copyIp(s.localAddress)">复制地址</button>

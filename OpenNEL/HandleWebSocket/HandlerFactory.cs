@@ -30,6 +30,9 @@ internal static class HandlerFactory
             new ListInstalledPluginsHandler(),
             new UninstallPluginHandler(),
             new RestartGatewayHandler(),
+            new InstallPluginHandler(),
+            new UpdatePluginHandler(),
+            new ListAvailablePluginsHandler(),
             new QueryGameSessionHandler(),
         };
         Map = handlers.ToDictionary(h => h.Type, h => h);
