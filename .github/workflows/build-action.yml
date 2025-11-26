@@ -2,7 +2,7 @@ name: Build Action
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
 
 jobs:
   build:
