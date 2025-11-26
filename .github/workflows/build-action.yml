@@ -1,9 +1,8 @@
 name: Build Action
 
 on:
-  push:
-    tags: ["v*"]
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -32,5 +31,20 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: OpenNel-${{ matrix.os }}
+          name: build-file
           path: ./build
+
+      - name: Create ZIP using action-zip
+        uses: papeloto/action-zip@v1
+        with:
+          files: build/*
+          dest: ${{ matrix.os }}-${{ github.event.release.tag_name }}.zip
+
+      - name: Upload ZIP to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.os }}-${{ github.event.release.tag_name }}.zip
+          tag_name: ${{ github.event.release.tag_name }}
+          body: ${{ github.event.release.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
