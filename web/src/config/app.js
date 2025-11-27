@@ -68,7 +68,7 @@ const getAboutJoin = () => {
 const getAboutContributors = () => {
   const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_ABOUT_CONTRIBUTORS') : null
   const fromEnv = typeof import.meta !== 'undefined' ? import.meta.env && import.meta.env.VITE_ABOUT_CONTRIBUTORS : null
-  const def = '贡献者(不分先后顺序)\n[开发]20018\n[开发]Samse\n[开发]haohaojisui\n[思路]ca1cdqy\n[dev]caolvchong\n[吉祥物]Malkuth\n[吉祥物]Atri\n[功能贡献 - 中文名生成]scarlet\n[观众]ASPIRIN\n[啥也不是]LELEXIAOLL\n[绒布球]Liliah\n一直支持我们的各位群友'
+  const def = '贡献者(不分先后顺序)\n[开发]20018\n[开发]Samse\n[开发]haohaojisui\n[思路]ca1cdqy\n[dev]caolvchong\n[吉祥物]Malkuth\n[吉祥物]Atri\n[吉祥物]汉堡鸭\n[功能贡献 - 中文名生成]scarlet\n[观众]ASPIRIN\n[啥也不是]LELEXIAOLL\n[绒布球]Liliah\n一直支持我们的各位群友'
   const v = fromStorage || fromEnv || def
   const arr = v.split('\n').map(s => s.trim()).filter(s => s)
   return arr

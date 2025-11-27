@@ -1,11 +1,14 @@
 using Codexus.Development.SDK.Manager;
+using Codexus.Game.Launcher.Utils;
 using Codexus.Interceptors;
 using Codexus.OpenSDK;
 using Codexus.OpenSDK.Entities.Yggdrasil;
 using Codexus.OpenSDK.Yggdrasil;
+using OpenNEL.Manager;
 using OpenNEL.type;
 using Serilog;
 using OpenNEL.Utils;
+using Serilog.Events;
 using UpdaterService = OpenNEL.Updater.Updater;
 
 namespace OpenNEL;
@@ -31,7 +34,7 @@ internal class Program
             "- 采用相同许可证分发" +
             "\n" +
             "- 提供完整的源代码");
-
+        await Check();
         await UpdaterService.UpdateAsync(AppInfo.AppVersion);
 
         await new WebSocketServer().StartAsync();
@@ -50,9 +53,20 @@ internal class Program
             .CreateLogger();
     }
 
+    static async Task Check()
+    {
+        string currentDirectory = Directory.GetCurrentDirectory();
+        if (PathUtil.ContainsChinese(currentDirectory))
+        {
+            Log.Error("运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。");
+            Environment.Exit(1);
+        }
+    }
+    
     static async Task InitializeSystemComponentsAsync()
     {
         Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins"));
+        UserManager.Instance.ReadUsersFromDisk();
         Interceptor.EnsureLoaded();
         PacketManager.Instance.EnsureRegistered();
         PluginManager.Instance.EnsureUninstall();

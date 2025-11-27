@@ -1,4 +1,4 @@
-namespace Codexus.Gateway.Connection;
+namespace OpenNEL.HandleWebSocket.Connection;
 
 public enum ConnectionState
 {

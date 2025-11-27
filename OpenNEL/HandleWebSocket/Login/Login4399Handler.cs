@@ -14,6 +14,7 @@ internal class Login4399Handler : IWsHandler
 
     public async Task<object?> ProcessAsync(JsonElement root)
     {
+        string? loginJson = null;
         var req = Parse(root);
         if (string.IsNullOrWhiteSpace(req.account) || string.IsNullOrWhiteSpace(req.password))
         {
@@ -22,46 +23,21 @@ internal class Login4399Handler : IWsHandler
         try
         {
             await AppState.Services!.X19.InitializeDeviceAsync();
-            var cookieJson = await LoginAsync(req);
-            var cont = await AppState.Services!.X19.ContinueAsync(cookieJson);
+            var cookieJson = await AppState.Services!.C4399.LoginWithPasswordAsync(req.account,req.password);
+            var cont = await AppState.Services.X19.ContinueAsync(cookieJson);
             var otp = cont.Item1;
             var channel = cont.Item2;
-            await X19.InterconnectionApi.LoginStart(otp.EntityId, otp.Token);
             AppState.Accounts[otp.EntityId] = channel;
             AppState.Auths[otp.EntityId] = otp;
             AppState.SelectedAccountId = otp.EntityId;
             return new { type = "Success_login", entityId = otp.EntityId, channel };
         }
-        catch (Exception ex) when (
-            (ex.Data.Contains("captcha_url") || ex.Data.Contains("captchaUrl")) &&
-            (ex.Data.Contains("session_id") || ex.Data.Contains("sessionId")))
+        catch (Exception ex) when (ex.Data.Contains("captcha_url") && ex.Data.Contains("session_id"))
         {
-            var capUrl = ex.Data.Contains("captcha_url") ? ex.Data["captcha_url"]?.ToString() : ex.Data["captchaUrl"]?.ToString();
-            var sidVal = ex.Data.Contains("session_id") ? ex.Data["session_id"]?.ToString() : ex.Data["sessionId"]?.ToString();
+            var capUrl = ex.Data["captcha_url"]?.ToString();
+            var sidVal = ex.Data["session_id"]?.ToString();
             if (Debug.Get()) Log.Information("login_4399 captcha_required ex: {Message} data: {Data}", ex.Message, DumpData(ex.Data));
             return new { type = "captcha_required", account = req.account, password = req.password, captchaUrl = capUrl, sessionId = sidVal };
-        }
-        catch (VerifyException vex)
-        {
-            var capUrl = vex.Data.Contains("captcha_url") ? vex.Data["captcha_url"]?.ToString() : (vex.Data.Contains("captchaUrl") ? vex.Data["captchaUrl"]?.ToString() : null);
-            var sidVal = vex.Data.Contains("session_id") ? vex.Data["session_id"]?.ToString() : (vex.Data.Contains("sessionId") ? vex.Data["sessionId"]?.ToString() : null);
-            if (!string.IsNullOrWhiteSpace(capUrl) && !string.IsNullOrWhiteSpace(sidVal))
-            {
-                if (Debug.Get()) Log.Information("login_4399 verify captcha info: url={Url} sid={Sid}", capUrl, sidVal);
-                return new { type = "captcha_required", account = req.account, password = req.password, captchaUrl = capUrl, sessionId = sidVal };
-            }
-            else
-            {
-                if (Debug.Get()) Log.Information("login_4399 verify exception: {Message} data: {Data}", vex.Message, DumpData(vex.Data));
-                return new { type = "captcha_required", account = req.account, password = req.password };
-            }
-        }
-        catch (Exception ex) when (
-            (ex.Message?.Contains("Parameter not found", StringComparison.OrdinalIgnoreCase) == true) ||
-            (ex.StackTrace?.Contains("Codexus.OpenSDK.Http.QueryBuilder.Get", StringComparison.Ordinal) == true))
-        {
-            if (Debug.Get()) Log.Information("login_4399 exception: {Message}", ex.Message);
-            return new { type = "login_error", message = "账号或密码错误" };
         }
         catch (Exception ex)
         {

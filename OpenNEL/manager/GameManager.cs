@@ -8,6 +8,7 @@ using Codexus.Game.Launcher.Services.Java;
 using Codexus.Game.Launcher.Utils;
 using Codexus.OpenSDK;
 using Codexus.Interceptors;
+using OpenNEL.Entities.Web.NEL;
 using OpenNEL.type;
 using OpenNEL.Utils;
 using Serilog;
@@ -16,6 +17,7 @@ namespace OpenNEL.Manager;
 
 internal class GameManager
 {
+    private readonly Lock _lock = new Lock();
     static readonly Dictionary<Guid, Codexus.Game.Launcher.Services.Java.LauncherService> Launchers = new();
     static readonly Dictionary<Guid, Codexus.Game.Launcher.Services.Bedrock.LauncherService> PeLaunchers = new();
     static readonly Dictionary<Guid, Interceptor> Interceptors = new();
@@ -92,9 +94,21 @@ internal class GameManager
                             Mods = JsonSerializer.Deserialize<Codexus.OpenSDK.Entities.Yggdrasil.ModList>(mods)!,
                             User = new Codexus.OpenSDK.Entities.Yggdrasil.UserProfile { UserId = int.Parse(auth.EntityId), UserToken = auth.Token }
                         }, sid);
-                        if (success.IsSuccess) 
-                            if(AppState.Debug)Log.Information("消息认证成功"); 
-                            else Log.Error("消息认证失败: {Error}", success.Error);
+                        if (success.IsSuccess)
+                        {
+                            if (AppState.Debug) Log.Information("消息认证成功");
+                        }
+                        else
+                        {
+                            if (AppState.Debug)
+                            {
+                                Log.Error(new Exception(success.Error ?? "未知错误"), "消息认证失败，详细信息: {Error}", success.Error);
+                            }
+                            else
+                            {
+                                Log.Error("消息认证失败: {Error}", success.Error);
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
@@ -133,7 +147,21 @@ internal class GameManager
         await X19.InterconnectionApi.GameStartAsync(auth.EntityId, auth.Token, serverId);
         return true;
     }
-
+    
+    public List<EntityQueryInterceptors> GetQueryInterceptors()
+    {
+        return Interceptors.Values.Select((Interceptor interceptor, int index) => new EntityQueryInterceptors
+        {
+            Id = index.ToString(),
+            Name = interceptor.Identifier,
+            Address = $"{interceptor.ForwardAddress}:{interceptor.ForwardPort}",
+            Role = interceptor.NickName,
+            Server = interceptor.ServerName,
+            Version = interceptor.ServerVersion,
+            LocalAddress = $"{interceptor.LocalAddress}:{interceptor.LocalPort}"
+        }).ToList();
+    }
+    
     public void ShutdownInterceptor(Guid identifier)
     {
         Interceptor value = null;
@@ -149,6 +177,13 @@ internal class GameManager
         if (has)
         {
             value.ShutdownAsync();
+        }
+    }
+    public void AddInterceptor(Interceptor interceptor)
+    {
+        using (_lock.EnterScope())
+        {
+            Interceptors.Add(interceptor.Identifier, interceptor);
         }
     }
 }
