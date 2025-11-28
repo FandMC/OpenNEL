@@ -1,5 +1,4 @@
 using OpenNEL.network;
-using System.Text;
 using System.Text.Json;
 using Codexus.Development.SDK.Manager;
 using OpenNEL.type;
@@ -10,7 +9,7 @@ namespace OpenNEL.HandleWebSocket.Plugin;
 internal class UninstallPluginHandler : IWsHandler
 {
     public string Type => "uninstall_plugin";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         var pluginId = root.TryGetProperty("pluginId", out var idEl) ? idEl.GetString() : null;
         if (!string.IsNullOrWhiteSpace(pluginId))
@@ -19,8 +18,7 @@ internal class UninstallPluginHandler : IWsHandler
             PluginManager.Instance.UninstallPlugin(pluginId);
             AppState.WaitRestartPlugins[pluginId] = true;
         }
-        var upd = JsonSerializer.Serialize(new { type = "installed_plugins_updated" });
-        await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(upd)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+        var updPayload = new { type = "installed_plugins_updated" };
         var items = PluginManager.Instance.Plugins.Values.Select(plugin => new {
             identifier = plugin.Id,
             name = plugin.Name,
@@ -29,7 +27,7 @@ internal class UninstallPluginHandler : IWsHandler
             author = plugin.Author,
             status = plugin.Status
         }).ToArray();
-        var msg = JsonSerializer.Serialize(new { type = "installed_plugins", items });
-        await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+        var listPayload = new { type = "installed_plugins", items };
+        return new object[] { updPayload, listPayload };
     }
 }

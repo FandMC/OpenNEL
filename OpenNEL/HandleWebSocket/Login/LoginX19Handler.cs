@@ -1,7 +1,6 @@
 using OpenNEL.network;
 using OpenNEL.type;
 using System.Text.Json;
-using System.Text;
 using Codexus.OpenSDK;
 
 namespace OpenNEL.HandleWebSocket.Login;
@@ -9,15 +8,13 @@ namespace OpenNEL.HandleWebSocket.Login;
 internal class LoginX19Handler : IWsHandler
 {
     public string Type => "login_x19";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         var email = root.TryGetProperty("email", out var e) ? e.GetString() : null;
         var password = root.TryGetProperty("password", out var p) ? p.GetString() : null;
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            var err = JsonSerializer.Serialize(new { type = "login_error", message = "邮箱或密码为空" });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(err)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
-            return;
+            return new { type = "login_error", message = "邮箱或密码为空" };
         }
         try
         {
@@ -26,9 +23,7 @@ internal class LoginX19Handler : IWsHandler
             var user = await mpay.LoginWithEmailAsync(email, password);
             if (user == null)
             {
-                var err = JsonSerializer.Serialize(new { type = "login_error", message = "MPay登录失败" });
-                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(err)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
-                return;
+                return new { type = "login_error", message = "MPay登录失败" };
             }
             var x19 = new X19();
             var result = await x19.ContinueAsync(user, mpay.Device);
@@ -38,13 +33,11 @@ internal class LoginX19Handler : IWsHandler
             AppState.Accounts[authOtp.EntityId] = channel;
             AppState.Auths[authOtp.EntityId] = authOtp;
             AppState.SelectedAccountId = authOtp.EntityId;
-            var ok = JsonSerializer.Serialize(new { type = "Success_login", entityId = authOtp.EntityId, channel });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ok)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            return new { type = "Success_login", entityId = authOtp.EntityId, channel };
         }
         catch (System.Exception ex)
         {
-            var err = JsonSerializer.Serialize(new { type = "login_error", message = ex.Message });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(err)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            return new { type = "login_error", message = ex.Message };
         }
     }
 }

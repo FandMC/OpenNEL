@@ -96,7 +96,7 @@ function startJoin() {
   if (!socket || socket.readyState !== 1) return
   const rid = selectedRoleId.value
   if (!rid) return
-  try { socket.send(JSON.stringify({ type: 'start_proxy', serverId: joinServerId.value, serverName: joinServerName.value, roleId: rid })) } catch {}
+  try { socket.send(JSON.stringify({ type: 'join_game', serverId: joinServerId.value, serverName: joinServerName.value, role: rid })) } catch {}
   showJoin.value = false
 }
 async function randomRoleName(type) {

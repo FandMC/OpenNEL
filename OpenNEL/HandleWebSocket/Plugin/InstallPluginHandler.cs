@@ -1,5 +1,4 @@
 using OpenNEL.network;
-using System.Text;
 using System.Text.Json;
 using Codexus.Development.SDK.Manager;
 using OpenNEL.type;
@@ -12,21 +11,21 @@ namespace OpenNEL.HandleWebSocket.Plugin;
 internal class InstallPluginHandler : IWsHandler
 {
     public string Type => "install_plugin";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         try
         {
             var infoStr = root.TryGetProperty("info", out var infoEl) ? infoEl.GetString() : null;
-            if (string.IsNullOrWhiteSpace(infoStr)) return;
+            if (string.IsNullOrWhiteSpace(infoStr)) return null;
             using var doc = JsonDocument.Parse(infoStr);
             var info = doc.RootElement;
             var pluginEl = info.TryGetProperty("plugin", out var pel) ? pel : default;
-            if (pluginEl.ValueKind != JsonValueKind.Object) return;
+            if (pluginEl.ValueKind != JsonValueKind.Object) return null;
             var id = pluginEl.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
             var name = pluginEl.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
             var version = pluginEl.TryGetProperty("version", out var verEl) ? verEl.GetString() : null;
             var downloadUrl = pluginEl.TryGetProperty("downloadUrl", out var urlEl) ? urlEl.GetString() : null;
-            if (string.IsNullOrWhiteSpace(downloadUrl) || string.IsNullOrWhiteSpace(id)) return;
+            if (string.IsNullOrWhiteSpace(downloadUrl) || string.IsNullOrWhiteSpace(id)) return null;
             Log.Information("安装插件 {PluginId} {PluginName} {PluginVersion}", id, name, version);
             var http = new HttpClient();
             var bytes = await http.GetByteArrayAsync(downloadUrl);
@@ -44,8 +43,7 @@ internal class InstallPluginHandler : IWsHandler
             var path = Path.Combine(dir, fileName);
             File.WriteAllBytes(path, bytes);
             try { PluginManager.Instance.LoadPlugins("plugins"); } catch { }
-            var upd = JsonSerializer.Serialize(new { type = "installed_plugins_updated" });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(upd)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            var updPayload = new { type = "installed_plugins_updated" };
             var items = PluginManager.Instance.Plugins.Values.Select(plugin => new {
                 identifier = plugin.Id,
                 name = plugin.Name,
@@ -55,12 +53,13 @@ internal class InstallPluginHandler : IWsHandler
                 status = plugin.Status,
                 waitingRestart = AppState.WaitRestartPlugins.ContainsKey(plugin.Id)
             }).ToArray();
-            var msg = JsonSerializer.Serialize(new { type = "installed_plugins", items });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            var listPayload = new { type = "installed_plugins", items };
+            return new object[] { updPayload, listPayload };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "安装插件失败");
+            return new { type = "install_plugin_error", message = ex.Message };
         }
     }
 }

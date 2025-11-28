@@ -2,7 +2,6 @@ using OpenNEL.network;
 using OpenNEL.type;
 using OpenNEL.Utils;
 using System.Text.Json;
-using System.Text;
 using Codexus.Cipher.Entities;
 using Codexus.Cipher.Entities.WPFLauncher.NetGame;
 using Serilog;
@@ -12,22 +11,18 @@ namespace OpenNEL.HandleWebSocket.Game;
 internal class CreateRoleNamedHandler : IWsHandler
 {
     public string Type => "create_role_named";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         var serverId = root.TryGetProperty("serverId", out var sid) ? sid.GetString() : null;
         var name = root.TryGetProperty("name", out var n) ? n.GetString() : null;
         var sel = AppState.SelectedAccountId;
         if (string.IsNullOrEmpty(sel) || !AppState.Auths.TryGetValue(sel, out var auth))
         {
-            var notLogin = JsonSerializer.Serialize(new { type = "notlogin" });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(notLogin)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
-            return;
+            return new { type = "notlogin" };
         }
         if (string.IsNullOrWhiteSpace(serverId) || string.IsNullOrWhiteSpace(name))
         {
-            var err = JsonSerializer.Serialize(new { type = "server_roles_error", message = "参数错误" });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(err)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
-            return;
+            return new { type = "server_roles_error", message = "参数错误" };
         }
         try
         {
@@ -37,14 +32,12 @@ internal class CreateRoleNamedHandler : IWsHandler
             var roles = await GetServerRolesByIdAsync(auth, serverId);
             if(AppState.Debug)Log.Information("角色列表返回: count={Count}, serverId={ServerId}", roles.Length, serverId);
             var items = roles.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            var msg = JsonSerializer.Serialize(new { type = "server_roles", items, serverId, createdName = name });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            return new { type = "server_roles", items, serverId, createdName = name };
         }
         catch (System.Exception ex)
         {
             Log.Error(ex, "角色创建失败: serverId={ServerId}, name={Name}", serverId, name);
-            var err = JsonSerializer.Serialize(new { type = "server_roles_error", message = "创建角色失败" });
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(err)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+            return new { type = "server_roles_error", message = "创建角色失败" };
         }
     }
 

@@ -23,7 +23,7 @@ internal static class HandlerFactory
             new ListServersHandler(),
             new OpenServerHandler(),
             new CreateRoleNamedHandler(),
-            new StartProxyHandler(),
+            new JoinGameHandler(),
             new ListChannelsHandler(),
             new ShutdownGameHandler(),
             new GetFreeAccountHandler(),
@@ -33,7 +33,7 @@ internal static class HandlerFactory
             new InstallPluginHandler(),
             new UpdatePluginHandler(),
             new ListAvailablePluginsHandler(),
-            new QueryGameSessionHandler(),
+            new QueryGameSessionHandler()
         };
         Map = handlers.ToDictionary(h => h.Type, h => h);
     }

@@ -1,14 +1,13 @@
 using OpenNEL.network;
 using OpenNEL.type;
 using System.Text.Json;
-using System.Text;
 
 namespace OpenNEL.HandleWebSocket.Game;
 
 internal class QueryGameSessionHandler : IWsHandler
 {
     public string Type => "query_game_session";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         var list = AppState.Channels.Values.Select(ch => new {
             Id = "interceptor-" + ch.Identifier,
@@ -21,7 +20,6 @@ internal class QueryGameSessionHandler : IWsHandler
             LocalAddress = "127.0.0.1:" + ch.LocalPort,
             Identifier = ch.Identifier.ToString()
         }).ToArray();
-        var msg = JsonSerializer.Serialize(new { type = "query_game_session", items = list });
-        await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(msg)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+        return new { type = "query_game_session", items = list };
     }
 }

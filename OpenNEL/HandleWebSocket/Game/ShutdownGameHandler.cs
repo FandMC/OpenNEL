@@ -1,6 +1,5 @@
 using OpenNEL.network;
 
-using System.Text;
 using System.Text.Json;
 using OpenNEL.Manager;
 
@@ -9,7 +8,7 @@ namespace OpenNEL.HandleWebSocket.Game;
 internal class ShutdownGameHandler : IWsHandler
 {
     public string Type => "shutdown_game";
-    public async Task ProcessAsync(System.Net.WebSockets.WebSocket ws, JsonElement root)
+    public async Task<object?> ProcessAsync(JsonElement root)
     {
         var closed = new List<string>();
         if (root.TryGetProperty("identifiers", out var arr) && arr.ValueKind == JsonValueKind.Array)
@@ -29,9 +28,11 @@ internal class ShutdownGameHandler : IWsHandler
         {
             Serilog.Log.Warning("shutdown_game 请求缺少 identifiers，已忽略关闭操作");
         }
-        var ack = JsonSerializer.Serialize(new { type = "shutdown_ack", identifiers = closed.ToArray() });
-        await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ack)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
-        var upd = JsonSerializer.Serialize(new { type = "channels_updated" });
-        await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(upd)), System.Net.WebSockets.WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+        var payloads = new object[]
+        {
+            new { type = "shutdown_ack", identifiers = closed.ToArray() },
+            new { type = "channels_updated" }
+        };
+        return payloads;
     }
 }
