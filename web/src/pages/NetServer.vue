@@ -82,6 +82,12 @@ function openJoin(s) {
   joinServerName.value = s.name
   showJoin.value = true
   
+  // 重置选择状态
+  selectedAccountId.value = ''
+  selectedRoleId.value = ''
+  accounts.value = []
+  roles.value = []
+  
   try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
   try { socket.send(JSON.stringify({ type: 'open_server', serverId: s.entityId, serverName: s.name })) } catch {}
 }
@@ -158,7 +164,9 @@ onMounted(() => {
           const accountId = msg.items[0].entityId
           selectedAccountId.value = accountId
           try { socket.send(JSON.stringify({ type: 'select_account', entityId: accountId })) } catch {}
-          try { socket.send(JSON.stringify({ type: 'open_server', serverId: joinServerId.value, serverName: joinServerName.value })) } catch {}
+          if (joinServerId.value) {
+            try { socket.send(JSON.stringify({ type: 'open_server', serverId: joinServerId.value, serverName: joinServerName.value })) } catch {}
+          }
         }
       } else if (msg.type === 'server_roles' && Array.isArray(msg.items)) {
         roles.value = msg.items
