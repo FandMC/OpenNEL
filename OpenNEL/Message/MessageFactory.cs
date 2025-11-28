@@ -40,6 +40,7 @@ internal static class MessageFactory
         Map["login_4399"] = login;
         Map["login_x19"] = login;
         Map["cookie_login"] = login;
+        Map["activate_account"] = login;
     }
 
     public static IWsMessage? Get(string type)

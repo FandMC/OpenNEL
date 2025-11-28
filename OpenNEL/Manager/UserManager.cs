@@ -196,10 +196,10 @@ public class UserManager : IUserManager
 		return value;
 	}
 
-	public EntityAvailableUser? GetLastAvailableUser()
-	{
-		return _availableUsers.Values.LastOrDefault();
-	}
+    public EntityAvailableUser? GetLastAvailableUser()
+    {
+        return _availableUsers.Values.OrderBy(u => u.LastLoginTime).LastOrDefault();
+    }
 
 	public void AddUserToMaintain(EntityAuthenticationOtp authenticationOtp)
 	{

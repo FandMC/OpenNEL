@@ -15,7 +15,7 @@ public class GetAccountMessage : IWsMessage
     public async Task<object?> ProcessAsync(JsonElement root)
     {
         var users = UserManager.Instance.GetUsersNoDetails();
-        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel }).ToArray();
+        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
         return new { type = "accounts", items };
     }
 }

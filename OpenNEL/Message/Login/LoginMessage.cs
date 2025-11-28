@@ -22,12 +22,104 @@ public class LoginMessage : IWsMessage
 
     public async Task<object?> ProcessAsync(JsonElement root)
     {
+        var msgType = root.TryGetProperty("type", out var tp) ? tp.GetString() : null;
+        if (string.Equals(msgType, "cookie_login", StringComparison.OrdinalIgnoreCase))
+        {
+            var cookie = root.TryGetProperty("cookie", out var ck) ? ck.GetString() : string.Empty;
+            LoginWithChannelAndType("netease", "cookie", cookie ?? string.Empty, Enums.Platform.Desktop, string.Empty);
+            var last = UserManager.Instance.GetLastAvailableUser();
+            var list = new System.Collections.ArrayList();
+            if (last != null)
+            {
+                var u = UserManager.Instance.GetUserByEntityId(last.UserId);
+                if (u != null) list.Add(new { type = "Success_login", entityId = u.UserId, channel = u.Channel });
+            }
+            var users = UserManager.Instance.GetUsersNoDetails();
+            var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
+            list.Add(new { type = "accounts", items });
+            return list;
+        }
+        if (string.Equals(msgType, "login_4399", StringComparison.OrdinalIgnoreCase))
+        {
+            var account = root.TryGetProperty("account", out var acc) ? acc.GetString() : string.Empty;
+            var password = root.TryGetProperty("password", out var pwd) ? pwd.GetString() : string.Empty;
+            var sessionId = root.TryGetProperty("sessionId", out var sid) ? sid.GetString() : null;
+            var captcha = root.TryGetProperty("captcha", out var cap) ? cap.GetString() : null;
+            var req = new EntityPasswordRequest { Account = account ?? string.Empty, Password = password ?? string.Empty, CaptchaIdentifier = sessionId, Captcha = captcha };
+            LoginWithChannelAndType("4399pc", "password", JsonSerializer.Serialize(req), Enums.Platform.Desktop, string.Empty);
+            var last = UserManager.Instance.GetLastAvailableUser();
+            var list = new System.Collections.ArrayList();
+            if (last != null)
+            {
+                var u = UserManager.Instance.GetUserByEntityId(last.UserId);
+                if (u != null) list.Add(new { type = "Success_login", entityId = u.UserId, channel = u.Channel });
+            }
+            var users = UserManager.Instance.GetUsersNoDetails();
+            var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
+            list.Add(new { type = "accounts", items });
+            return list;
+        }
+        if (string.Equals(msgType, "login_x19", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var email = root.TryGetProperty("email", out var e) ? e.GetString() : string.Empty;
+                var pwd = root.TryGetProperty("password", out var p) ? p.GetString() : string.Empty;
+                var req = new EntityPasswordRequest { Account = email ?? string.Empty, Password = pwd ?? string.Empty };
+                LoginWithChannelAndType("netease", "password", JsonSerializer.Serialize(req), Enums.Platform.Desktop, string.Empty);
+                var last = UserManager.Instance.GetLastAvailableUser();
+                var list = new System.Collections.ArrayList();
+                if (last != null)
+                {
+                    var u = UserManager.Instance.GetUserByEntityId(last.UserId);
+                    if (u != null) list.Add(new { type = "Success_login", entityId = u.UserId, channel = u.Channel });
+                }
+                var users = UserManager.Instance.GetUsersNoDetails();
+                var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
+                list.Add(new { type = "accounts", items });
+                return list;
+            }
+            catch (Exception ex)
+            {
+                return new { type = "login_error", message = ex.Message ?? "登录失败" };
+            }
+        }
+        if (string.Equals(msgType, "activate_account", StringComparison.OrdinalIgnoreCase))
+        {
+            var id = root.TryGetProperty("id", out var idp) ? idp.GetString() : (root.TryGetProperty("entityId", out var idp2) ? idp2.GetString() : null);
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return new { type = "activate_account_error", message = "缺少id" };
+            }
+            var u = UserManager.Instance.GetUserByEntityId(id!);
+            if (u == null)
+            {
+                return new { type = "activate_account_error", message = "账号不存在" };
+            }
+            try
+            {
+                if (!u.Authorized)
+                {
+                    LoginWithChannelAndType(u.Channel, u.Type, u.Details, u.Platform, string.Empty);
+                }
+                var list = new System.Collections.ArrayList();
+                var users = UserManager.Instance.GetUsersNoDetails();
+                var items = users.Select(x => new { entityId = x.UserId, channel = x.Channel, status = x.Authorized ? "online" : "offline" }).ToArray();
+                list.Add(new { type = "Success_login", entityId = u.UserId, channel = u.Channel });
+                list.Add(new { type = "accounts", items });
+                return list;
+            }
+            catch (Exception ex)
+            {
+                return new { type = "activate_account_error", message = ex.Message ?? "激活失败" };
+            }
+        }
         EntityLoginRequest? entity = JsonSerializer.Deserialize<EntityLoginRequest>(root.GetRawText());
         if (entity == null || string.IsNullOrWhiteSpace(entity.Channel))
         {
-            if (root.TryGetProperty("cookie", out var ck) && ck.ValueKind == JsonValueKind.String)
+            if (root.TryGetProperty("cookie", out var ck2) && ck2.ValueKind == JsonValueKind.String)
             {
-                entity = new EntityLoginRequest { Channel = "netease", Type = "cookie", Details = ck.GetString() ?? string.Empty };
+                entity = new EntityLoginRequest { Channel = "netease", Type = "cookie", Details = ck2.GetString() ?? string.Empty, Platform = Enums.Platform.Desktop, Token = string.Empty };
             }
         }
         if (entity == null)
@@ -98,11 +190,11 @@ public class LoginMessage : IWsMessage
                 list.Add(new { type = "Success_login", entityId = u.UserId, channel = u.Channel });
             }
         }
-        var users = UserManager.Instance.GetUsersNoDetails();
-        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel }).ToArray();
-        list.Add(new { type = "accounts", items });
-        return list;
-    }
+            var users = UserManager.Instance.GetUsersNoDetails();
+            var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
+            list.Add(new { type = "accounts", items });
+            return list;
+        }
 
     private static object HandleActiveWithCaptcha(EntityLoginRequest entity)
     {
@@ -143,7 +235,7 @@ public class LoginMessage : IWsMessage
             }
         }
         var users = UserManager.Instance.GetUsersNoDetails();
-        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel }).ToArray();
+        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
         list.Add(new { type = "accounts", items });
         return list;
     }
@@ -162,7 +254,7 @@ public class LoginMessage : IWsMessage
             }
         }
         var users = UserManager.Instance.GetUsersNoDetails();
-        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel }).ToArray();
+        var items = users.Select(u => new { entityId = u.UserId, channel = u.Channel, status = u.Authorized ? "online" : "offline" }).ToArray();
         list.Add(new { type = "accounts", items });
         return list;
     }
@@ -252,8 +344,10 @@ public class LoginMessage : IWsMessage
             });
             return;
         }
-        using Pc4399 pc = new Pc4399();
-        string result2 = pc.LoginWithPasswordAsync(entityPasswordRequest.Account, entityPasswordRequest.Password, entityPasswordRequest.CaptchaIdentifier, entityPasswordRequest.Captcha).GetAwaiter().GetResult();
+        AppState.Services!.X19.InitializeDeviceAsync().GetAwaiter().GetResult();
+        string result2 = (!string.IsNullOrWhiteSpace(entityPasswordRequest.CaptchaIdentifier) && !string.IsNullOrWhiteSpace(entityPasswordRequest.Captcha))
+            ? AppState.Services!.C4399.LoginWithPasswordAsync(entityPasswordRequest.Account, entityPasswordRequest.Password, entityPasswordRequest.CaptchaIdentifier!, entityPasswordRequest.Captcha!).GetAwaiter().GetResult()
+            : AppState.Services!.C4399.LoginWithPasswordAsync(entityPasswordRequest.Account, entityPasswordRequest.Password).GetAwaiter().GetResult();
         var (authOtp4399Pc, loginChannel4399Pc) = AppState.X19.LoginWithCookie(result2);
         Log.Information("Login with password: {UserId} Channel: {LoginChannel}", authOtp4399Pc.EntityId, loginChannel4399Pc);
         Log.Debug("User details: {UserId},{Token}", authOtp4399Pc.EntityId, authOtp4399Pc.Token);
@@ -281,6 +375,7 @@ public class LoginMessage : IWsMessage
             throw new ArgumentException("Invalid email login details");
         }
         WPFLauncher x = AppState.X19;
+        // x.InitializeDeviceAsync().GetAwaiter().GetResult();
         EntityX19CookieRequest entityX19CookieRequest = WPFLauncher.GenerateCookie(x.LoginWithEmailAsync(entityPasswordRequest.Account, entityPasswordRequest.Password).GetAwaiter().GetResult(), x.MPay.GetDevice());
         var (authOtpEmail, loginChannelEmail) = x.LoginWithCookie(entityX19CookieRequest);
         Log.Information("Login with email: {UserId} Channel: {LoginChannel}", authOtpEmail.EntityId, loginChannelEmail);

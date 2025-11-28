@@ -72,6 +72,9 @@ function normalize(v) {
   if (!v) return []
   return String(v).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0)
 }
+function normalizeId(s) {
+  return String(s || '').replace(/`/g, '').trim().toUpperCase()
+}
 function gtVersion(a, b) {
   const aa = normalize(a), bb = normalize(b)
   const len = Math.max(aa.length, bb.length)
@@ -84,7 +87,7 @@ function gtVersion(a, b) {
 }
 function findAvailableById(id) {
   if (!id) return null
-  const iid = String(id).toUpperCase()
+  const iid = normalizeId(id)
   return available.value.find(it => it.id === iid) || null
 }
 function needUpdate(p) {
@@ -94,8 +97,8 @@ function needUpdate(p) {
 }
 function isInstalled(it) {
   if (!it) return false
-  const id = String(it.id || '').toUpperCase()
-  return installed.value.some(p => String(p.identifier || '').toUpperCase() === id)
+  const id = normalizeId(it.id)
+  return installed.value.some(p => normalizeId(p.identifier) === id)
 }
 function downloadPlugin(it) {
   if (!it || !socket || socket.readyState !== 1) return
@@ -119,7 +122,7 @@ onMounted(() => {
       if (!msg || !msg.type) return
       if (msg.type === 'installed_plugins' && Array.isArray(msg.items)) {
         installed.value = (msg.items || []).map(it => ({
-          identifier: it.identifier,
+          identifier: normalizeId(it.identifier),
           name: it.name,
           version: it.version,
           waitingRestart: !!it.waitingRestart
@@ -128,7 +131,7 @@ onMounted(() => {
         requestInstalled()
       } else if (msg.type === 'available_plugins' && Array.isArray(msg.items)) {
         available.value = (msg.items || []).map(x => ({
-          id: (x.id || '').toUpperCase(),
+          id: normalizeId(x.id),
           name: x.name || '',
           version: x.version || '',
           logoUrl: (x.logoUrl || '').replace(/`/g, '').trim(),

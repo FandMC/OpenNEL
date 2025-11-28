@@ -20,7 +20,11 @@
               <div class="account-id">{{ acc.entityId || '未分配' }}</div>
               <div class="account-type">{{ acc.channel }}</div>
             </div>
-            <button class="del-btn" @click="removeAccount(acc)">删除</button>
+            <div class="account-actions">
+              <button v-if="acc.status === 'offline'" class="status-btn" @click="activateAccount(acc)">登录</button>
+              <span v-else class="status-ok">已登录</span>
+              <button class="del-btn" @click="removeAccount(acc)">删除</button>
+            </div>
           </li>
           <li v-if="accounts.length === 0" class="empty">暂无账号</li>
         </ul>
@@ -162,6 +166,11 @@ function removeAccount(acc) {
   if (!acc || !acc.entityId) return
   try { socket.send(JSON.stringify({ type: 'delete_account', entityId: acc.entityId })) } catch {}
 }
+function activateAccount(acc) {
+  if (!socket || socket.readyState !== 1) return
+  if (!acc || !acc.entityId) return
+  try { socket.send(JSON.stringify({ type: 'activate_account', id: acc.entityId })) } catch {}
+}
 
 const statusText = computed(() => {
   if (connecting.value) return '连接中'
@@ -193,8 +202,12 @@ onMounted(() => {
         accounts.value = msg.items
       } else if (msg.type === 'Success_login') {
         if (msg.entityId && msg.channel) {
-          const exists = accounts.value.some(a => a.entityId === msg.entityId)
-          if (!exists) accounts.value.push({ entityId: msg.entityId, channel: msg.channel })
+          const idx = accounts.value.findIndex(a => a.entityId === msg.entityId)
+          if (idx >= 0) {
+            accounts.value[idx] = { ...accounts.value[idx], channel: msg.channel, status: 'online' }
+          } else {
+            accounts.value.push({ entityId: msg.entityId, channel: msg.channel, status: 'online' })
+          }
           showAdd.value = false
           cookieText.value = ''
           pc4399Account.value = ''
@@ -212,6 +225,8 @@ onMounted(() => {
         }
       } else if (msg.type === 'login_error') {
         if (notify) notify('账号登录失败', msg.message || '登录失败', 'error')
+      } else if (msg.type && msg.type.endsWith('_error')) {
+        if (notify) notify('操作失败', msg.message || '失败', 'error')
       } else if (msg.type === 'get_free_account_status') {
         freeMessage.value = msg.message || '获取中...'
         freeLevel.value = 'info'
@@ -360,6 +375,9 @@ function confirmNotice() {
   gap: 8px;
 }
 .account-item { padding: 8px 10px; border: 1px solid var(--glass-border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; background: var(--glass-surface); backdrop-filter: blur(var(--glass-blur)); }
+.account-actions { display: flex; align-items: center; gap: 8px; }
+.status-btn { padding: 6px 10px; border: 1px solid var(--glass-border); background: var(--glass-surface); color: var(--color-text); border-radius: 8px; cursor: pointer; }
+.status-ok { font-size: 12px; color: #10b981; }
 .account-id {
   font-size: 14px;
   font-weight: 600;
