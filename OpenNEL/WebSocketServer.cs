@@ -13,7 +13,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
-using OpenNEL.HandleWebSocket;
+using OpenNEL.Message;
 using OpenNEL.type;
 using OpenNEL.Utils;
 
@@ -26,11 +26,20 @@ internal class WebSocketServer
     private HttpListener? _listener;
     private volatile bool _running;
     private int _currentPort;
-
+    private readonly ILogger _logger;
+    private readonly string _path;
+    
+    public WebSocketServer(int defaultPort = 8080, string path = "/", ILogger? logger = null)
+    {
+        _path = path;
+        _clients = new ConcurrentDictionary<Guid, WebSocket>();
+        _logger = logger ?? Log.Logger;
+        _currentPort = defaultPort;
+    }
+    
     public async Task StartAsync(bool listenAll = false)
     {
         if (_running) return;
-        _currentPort = GetPort();
         _cts = new CancellationTokenSource();
         var started = false;
         while (!started && _currentPort <= 65535)
@@ -172,7 +181,7 @@ internal class WebSocketServer
                 var type = root.TryGetProperty("type", out var t) ? t.GetString() : null;
                 if (!string.IsNullOrWhiteSpace(type))
                 {
-                    var handler = HandlerFactory.Get(type);
+                    var handler = MessageFactory.Get(type);
                     if (handler != null)
                     {
                         object? payload = null;
@@ -225,16 +234,28 @@ internal class WebSocketServer
             {
                 if (item == null) continue;
                 var msg = JsonSerializer.Serialize(item);
+                if (AppState.Debug)
+                {
+                    Log.Information("WS Send: {Text}", msg);
+                }
                 await SendText(ws, msg);
             }
             return;
         }
         var text = JsonSerializer.Serialize(payload);
+        if (AppState.Debug)
+        {
+            Log.Information("WS Send: {Text}", text);
+        }
         await SendText(ws, text);
     }
 
     async Task SendText(WebSocket ws, string text)
     {
+        if (AppState.Debug)
+        {
+            Log.Information("WS SendText: {Text}", text);
+        }
         await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(text)), WebSocketMessageType.Text, true, CancellationToken.None);
     }
 

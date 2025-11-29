@@ -73,4 +73,21 @@ const getAboutContributors = () => {
   const arr = v.split('\n').map(s => s.trim()).filter(s => s)
   return arr
 }
-export default { getWsUrl, getPluginListUrl, getRandomNameUrl, getAnnouncementUrl, getAnnouncementTTL, getNoticeKey, getNoticeText, getAboutCopyright, getAboutJoin, getAboutContributors }
+const getThemeMode = () => {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_THEME_MODE') : null
+  return v || 'image'
+}
+const getThemeColor = () => {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_THEME_COLOR') : null
+  return v || '#181818'
+}
+const getThemeImage = () => {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem('NEL_THEME_IMAGE') : null
+  return v || ''
+}
+const setThemeMode = (v) => { try { if (typeof localStorage !== 'undefined') localStorage.setItem('NEL_THEME_MODE', v || '') } catch {} }
+const setThemeColor = (v) => { try { if (typeof localStorage !== 'undefined') localStorage.setItem('NEL_THEME_COLOR', v || '') } catch {} }
+const setThemeImage = (v) => { try { if (typeof localStorage !== 'undefined') localStorage.setItem('NEL_THEME_IMAGE', v || '') } catch {} }
+export const theme = { getThemeMode, getThemeColor, getThemeImage, setThemeMode, setThemeColor, setThemeImage }
+export { getThemeMode, getThemeColor, getThemeImage, setThemeMode, setThemeColor, setThemeImage }
+export default { getWsUrl, getPluginListUrl, getRandomNameUrl, getAnnouncementUrl, getAnnouncementTTL, getNoticeKey, getNoticeText, getAboutCopyright, getAboutJoin, getAboutContributors, getThemeMode, getThemeColor, getThemeImage, setThemeMode, setThemeColor, setThemeImage, theme }

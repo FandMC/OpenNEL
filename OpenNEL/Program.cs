@@ -10,6 +10,7 @@ using Serilog;
 using OpenNEL.Utils;
 using Serilog.Events;
 using UpdaterService = OpenNEL.Updater.Updater;
+using System.Runtime.InteropServices;
 
 namespace OpenNEL;
 
@@ -17,6 +18,13 @@ internal class Program
 {
     static async Task Main(string[] args){
         ConfigureLogger();
+        string currentDirectory = Directory.GetCurrentDirectory();
+        if (PathUtil.ContainsChinese(currentDirectory))
+        {
+            Log.Error("Current directory contains Chinese characters: {Directory}", currentDirectory);
+            MessageBox(IntPtr.Zero, "运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。", "OpenNEL", 0x00000010);
+            Environment.Exit(1);
+        }
         AppState.Debug = Debug.Get();
         Log.Information("OpenNEL github: {github}",AppInfo.GithubUrL);
         Log.Information("版本: {version}",AppInfo.AppVersion);
@@ -34,14 +42,13 @@ internal class Program
             "- 采用相同许可证分发" +
             "\n" +
             "- 提供完整的源代码");
-        await Check();
         await UpdaterService.UpdateAsync(AppInfo.AppVersion);
 
-        await new WebSocketServer().StartAsync();
         await InitializeSystemComponentsAsync();
         AppState.Services = await CreateServices();
         await AppState.Services.X19.InitializeDeviceAsync();
-
+        WebSocketServer server = new WebSocketServer(8080, "/gateway", Log.Logger);
+        await server.StartAsync();
         await Task.Delay(Timeout.Infinite);
     }
 
@@ -51,16 +58,6 @@ internal class Program
             .MinimumLevel.Information()
             .WriteTo.Console()
             .CreateLogger();
-    }
-
-    static async Task Check()
-    {
-        string currentDirectory = Directory.GetCurrentDirectory();
-        if (PathUtil.ContainsChinese(currentDirectory))
-        {
-            Log.Error("运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。");
-            Environment.Exit(1);
-        }
     }
     
     static async Task InitializeSystemComponentsAsync()
@@ -88,4 +85,7 @@ internal class Program
 
         return new Services(c4399, x19, yggdrasil);
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 }

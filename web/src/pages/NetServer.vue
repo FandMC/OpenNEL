@@ -5,6 +5,7 @@
       <div class="search">
         <input class="input" v-model="keyword" placeholder="搜索服务器" @input="onInput" />
       </div>
+      <button class="btn" @click="openSpecify">指定服务器</button>
     </div>
     <div v-if="notlogin" class="hint">未登录</div>
     <div v-else>
@@ -49,6 +50,16 @@
         <button class="btn" @click="showAddRole = false">关闭</button>
       </template>
     </Modal>
+    <Modal v-model="showSpecify" title="指定服务器">
+      <div class="form">
+        <input v-model="specifyServerId" class="input" placeholder="例如：4661334467366178884（布吉岛）" />
+        <div class="spec-tip">布吉岛id: 4661334467366178884</div>
+      </div>
+      <template #actions>
+        <button class="btn" @click="showSpecify = false">取消</button>
+        <button class="btn btn-primary" @click="confirmSpecify">确定</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -66,14 +77,21 @@ const keyword = ref('')
 let timer = null
 const showJoin = ref(false)
 const showAddRole = ref(false)
+const showSpecify = ref(false)
 const accounts = ref([])
 const roles = ref([])
 const selectedAccountId = ref('')
 const selectedRoleId = ref('')
 const joinServerId = ref('')
 const joinServerName = ref('')
+const specifyServerId = ref('')
 const newRoleName = ref('')
-const accountItems = computed(() => accounts.value.map(a => ({ label: a.entityId, description: a.channel, value: a.entityId })))
+const isOfflineChannel = (ch) => {
+  const s = ((ch ?? '') + '').trim().toLowerCase()
+  return /离线|offline/.test(s)
+}
+const filteredAccounts = computed(() => accounts.value.filter(a => !isOfflineChannel(a.channel)))
+const accountItems = computed(() => filteredAccounts.value.map(a => ({ label: a.entityId, description: a.channel, value: a.entityId })))
 const roleItems = computed(() => roles.value.map(r => ({ label: r.name, description: '', value: r.id })))
 function onSelectAccount(id) { selectAccount(id) }
 function openJoin(s) {
@@ -90,6 +108,20 @@ function openJoin(s) {
   
   try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
   try { socket.send(JSON.stringify({ type: 'open_server', serverId: s.entityId, serverName: s.name })) } catch {}
+}
+function openSpecify() {
+  showSpecify.value = true
+}
+function confirmSpecify() {
+  if (!socket || socket.readyState !== 1) return
+  const sid = (specifyServerId.value || '').trim()
+  if (!sid) return
+  joinServerId.value = sid
+  joinServerName.value = '指定服务器'
+  showSpecify.value = false
+  showJoin.value = true
+  try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
+  try { socket.send(JSON.stringify({ type: 'open_server', serverId: sid, serverName: joinServerName.value })) } catch {}
 }
 function selectAccount(id) {
   if (!socket || socket.readyState !== 1) return
@@ -159,9 +191,12 @@ onMounted(() => {
       } else if (msg.type === 'servers_error') {
       } else if (msg.type === 'accounts' && Array.isArray(msg.items)) {
         accounts.value = msg.items
-        // 自动选择唯一账号
-        if (msg.items.length === 1) {
-          const accountId = msg.items[0].entityId
+        const nonOffline = msg.items.filter(a => !isOfflineChannel(a.channel))
+        if (!nonOffline.find(a => a.entityId === selectedAccountId.value)) {
+          selectedAccountId.value = ''
+        }
+        if (nonOffline.length === 1) {
+          const accountId = nonOffline[0].entityId
           selectedAccountId.value = accountId
           try { socket.send(JSON.stringify({ type: 'select_account', entityId: accountId })) } catch {}
           if (joinServerId.value) {
@@ -217,6 +252,7 @@ onUnmounted(() => {
 .section-title { font-size: 14px; font-weight: 600; }
 .empty-tip { opacity: 0.7; }
 .form { display: grid; gap: 8px; }
+.spec-tip { font-size: 12px; opacity: 0.7; }
 .row-actions { display: flex; gap: 8px; flex-direction: column; }
 .row-actions-inner { display: flex; gap: 8px; flex-direction: row; justify-content: space-between; }
 </style>

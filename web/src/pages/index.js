@@ -1,15 +1,17 @@
 import Overview from './Overview.vue'
 import NetServer from './NetServer.vue'
-import Rent from './Rent.vue'
+import Rentals from './Rentals.vue'
 import Plugins from './Plugins.vue'
 import Game from './Game.vue'
 import About from './About.vue'
+import Settings from './Settings.vue'
 
 export const pages = {
   overview: Overview,
   netserver: NetServer,
-  rent: Rent,
+  rent: Rentals,
   plugins: Plugins,
   game: Game,
-  about: About
+  about: About,
+  settings: Settings
 }

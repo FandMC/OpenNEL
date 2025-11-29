@@ -64,7 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Handler\" />
+    <Folder Include="Message\Web\" />
   </ItemGroup>
 
   <PropertyGroup>

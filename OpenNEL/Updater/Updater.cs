@@ -18,6 +18,20 @@ public static class Updater
 
 	private static readonly HttpClient Http = new HttpClient();
 
+	private static int CompareVersion(string a, string b)
+	{
+		var sa = (a ?? string.Empty).Trim().TrimStart('v', 'V').Split('.');
+		var sb = (b ?? string.Empty).Trim().TrimStart('v', 'V').Split('.');
+		var n = Math.Max(sa.Length, sb.Length);
+		for (int i = 0; i < n; i++)
+		{
+			var ai = i < sa.Length && int.TryParse(sa[i], out var va) ? va : 0;
+			var bi = i < sb.Length && int.TryParse(sb[i], out var vb) ? vb : 0;
+			if (ai != bi) return ai > bi ? 1 : -1;
+		}
+		return 0;
+	}
+
 	public static async Task UpdateAsync(string newVersion)
 	{
 		Uri uri = new Uri(LastVersionUrl);
@@ -30,13 +44,17 @@ public static class Updater
             {
                 latestVersion = jsonDoc.RootElement[0].GetProperty("version").GetString();
             }
-            string downloadUrl = DownloadZipUrl;
-            if (!string.IsNullOrWhiteSpace(latestVersion) && latestVersion == newVersion)
-            {
-                Log.Information("[Update] 当前已是最新版本: {version}", latestVersion);
-                return;
-            }
-            Log.Information("[Update] 新版本下载地址: {downloadUrl}", downloadUrl);
+			string downloadUrl = DownloadZipUrl;
+			if (!string.IsNullOrWhiteSpace(latestVersion) && !string.IsNullOrWhiteSpace(newVersion))
+			{
+				var cmp = CompareVersion(newVersion, latestVersion);
+				if (cmp >= 0)
+				{
+					Log.Information("[Update] 当前版本不低于远程版本: {current} >= {latest}", newVersion, latestVersion);
+					return;
+				}
+			}
+			Log.Information("[Update] 新版本下载地址: {downloadUrl}", downloadUrl);
 			SyncProgressBarUtil.ProgressBar progress = new SyncProgressBarUtil.ProgressBar(100);
 			IProgress<SyncProgressBarUtil.ProgressReport> uiProgress = new SyncCallback<SyncProgressBarUtil.ProgressReport>(delegate(SyncProgressBarUtil.ProgressReport update)
 			{

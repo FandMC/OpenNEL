@@ -51,14 +51,17 @@ onMounted(() => {
       if (!msg || !msg.type) return
       if (msg.type === 'query_game_session' && Array.isArray(msg.items)) {
         const mapped = (msg.items || []).map(it => ({
-          id: it.Id || it.id,
-          serverName: it.ServerName || it.serverName,
-          characterName: it.CharacterName || it.characterName,
-          type: it.Type || it.type,
-          statusText: it.StatusText || it.statusText,
-          progressValue: typeof it.ProgressValue === 'number' ? it.ProgressValue : (parseInt(it.progressValue) || 0),
-          localAddress: it.LocalAddress || it.localAddress,
-          identifier: it.Identifier || it.identifier
+          id: it.id ?? it.Id ?? '',
+          serverName: it.server_name ?? it.ServerName ?? it.serverName ?? '',
+          characterName: it.character_name ?? it.CharacterName ?? it.characterName ?? '',
+          type: it.type ?? it.Type ?? '',
+          statusText: it.status_text ?? it.StatusText ?? it.statusText ?? '',
+          progressValue:
+            typeof it.progress_value === 'number'
+              ? it.progress_value
+              : (typeof it.ProgressValue === 'number' ? it.ProgressValue : (parseInt(it.progressValue) || 0)),
+          localAddress: it.local_address ?? it.LocalAddress ?? it.localAddress ?? '',
+          identifier: it.guid ?? it.Guid ?? it.Identifier ?? it.identifier ?? ''
         }))
         const old = prevIds.value
         const newly = mapped.filter(s => !old.has(s.id))
