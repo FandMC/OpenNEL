@@ -10,6 +10,7 @@ using Serilog;
 using OpenNEL.Utils;
 using Serilog.Events;
 using UpdaterService = OpenNEL.Updater.Updater;
+using System.Runtime.InteropServices;
 
 namespace OpenNEL;
 
@@ -21,8 +22,7 @@ internal class Program
         if (PathUtil.ContainsChinese(currentDirectory))
         {
             Log.Error("Current directory contains Chinese characters: {Directory}", currentDirectory);
-            Console.WriteLine("运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。");
-            Console.ReadKey();
+            MessageBox(IntPtr.Zero, "运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。", "OpenNEL", 0x00000010);
             Environment.Exit(1);
         }
         AppState.Debug = Debug.Get();
@@ -85,4 +85,7 @@ internal class Program
 
         return new Services(c4399, x19, yggdrasil);
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 }
