@@ -2,6 +2,7 @@ using OpenNEL.Message.Game;
 using OpenNEL.Message.Login;
 using OpenNEL.Message.Plugin;
 using OpenNEL.Message.Connected;
+using OpenNEL.Message.Web;
 using OpenNEL.Network;
 
 namespace OpenNEL.Message;
@@ -37,13 +38,18 @@ internal static class MessageFactory
             new InstallPluginMessage(),
             new UpdatePluginMessage(),
             new ListAvailablePluginsMessage(),
-            new QueryGameSessionMessage()
+            new QueryGameSessionMessage(),
+            new GetSettingsMessage(),
+            new UpdateSettingsMessage()
         };
         Map = handlers.ToDictionary(h => h.Type, h => h);
         Map["login_4399"] = login;
         Map["login_x19"] = login;
         Map["cookie_login"] = login;
         Map["activate_account"] = login;
+        Map["active_with_captcha"] = login;
+        Map["active"] = login;
+        Map["send_code"] = login;
     }
 
     public static IWsMessage? Get(string type)

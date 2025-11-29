@@ -5,6 +5,7 @@
       <div class="search">
         <input class="input" v-model="keyword" placeholder="搜索服务器" @input="onInput" />
       </div>
+      <button class="btn" @click="openSpecify">指定服务器</button>
     </div>
     <div v-if="notlogin" class="hint">未登录</div>
     <div v-else>
@@ -49,6 +50,16 @@
         <button class="btn" @click="showAddRole = false">关闭</button>
       </template>
     </Modal>
+    <Modal v-model="showSpecify" title="指定服务器">
+      <div class="form">
+        <input v-model="specifyServerId" class="input" placeholder="例如：4661334467366178884（布吉岛）" />
+        <div class="spec-tip">布吉岛id: 4661334467366178884</div>
+      </div>
+      <template #actions>
+        <button class="btn" @click="showSpecify = false">取消</button>
+        <button class="btn btn-primary" @click="confirmSpecify">确定</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -66,12 +77,14 @@ const keyword = ref('')
 let timer = null
 const showJoin = ref(false)
 const showAddRole = ref(false)
+const showSpecify = ref(false)
 const accounts = ref([])
 const roles = ref([])
 const selectedAccountId = ref('')
 const selectedRoleId = ref('')
 const joinServerId = ref('')
 const joinServerName = ref('')
+const specifyServerId = ref('')
 const newRoleName = ref('')
 const isOfflineChannel = (ch) => {
   const s = ((ch ?? '') + '').trim().toLowerCase()
@@ -89,6 +102,20 @@ function openJoin(s) {
   
   try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
   try { socket.send(JSON.stringify({ type: 'open_server', serverId: s.entityId, serverName: s.name })) } catch {}
+}
+function openSpecify() {
+  showSpecify.value = true
+}
+function confirmSpecify() {
+  if (!socket || socket.readyState !== 1) return
+  const sid = (specifyServerId.value || '').trim()
+  if (!sid) return
+  joinServerId.value = sid
+  joinServerName.value = '指定服务器'
+  showSpecify.value = false
+  showJoin.value = true
+  try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
+  try { socket.send(JSON.stringify({ type: 'open_server', serverId: sid, serverName: joinServerName.value })) } catch {}
 }
 function selectAccount(id) {
   if (!socket || socket.readyState !== 1) return
@@ -217,6 +244,7 @@ onUnmounted(() => {
 .section-title { font-size: 14px; font-weight: 600; }
 .empty-tip { opacity: 0.7; }
 .form { display: grid; gap: 8px; }
+.spec-tip { font-size: 12px; opacity: 0.7; }
 .row-actions { display: flex; gap: 8px; flex-direction: column; }
 .row-actions-inner { display: flex; gap: 8px; flex-direction: row; justify-content: space-between; }
 </style>

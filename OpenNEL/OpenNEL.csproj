@@ -63,6 +63,10 @@
         </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Message\Web\" />
+  </ItemGroup>
+
   <PropertyGroup>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>

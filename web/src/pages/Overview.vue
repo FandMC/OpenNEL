@@ -240,7 +240,30 @@ onMounted(() => {
           if (notify) notify('账号登录成功', `${msg.entityId} · ${msg.channel}`, 'ok')
         }
       } else if (msg.type === 'login_error') {
-        if (notify) notify('账号登录失败', msg.message || '登录失败', 'error')
+        const needCap = (msg.message || '').toLowerCase().includes('captcha')
+        if (needCap) {
+          pc4399NeedCaptcha.value = true
+          newType.value = 'pc4399'
+          showAdd.value = true
+          if (notify) notify('需要验证码', '请完成验证码后重试', 'warn')
+        } else {
+          if (notify) notify('账号登录失败', msg.message || '登录失败', 'error')
+        }
+        addLoading.value = false
+        if (currentActivatingId.value) {
+          loginLoading.value[currentActivatingId.value] = false
+          currentActivatingId.value = ''
+        }
+      } else if (msg.type === 'login_4399_error') {
+        const needCap = (msg.message || '').toLowerCase().includes('captcha')
+        if (needCap) {
+          pc4399NeedCaptcha.value = true
+          newType.value = 'pc4399'
+          showAdd.value = true
+          if (notify) notify('需要验证码', '请完成验证码后重试', 'warn')
+        } else {
+          if (notify) notify('操作失败', msg.message || '失败', 'error')
+        }
         addLoading.value = false
         if (currentActivatingId.value) {
           loginLoading.value[currentActivatingId.value] = false

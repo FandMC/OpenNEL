@@ -17,6 +17,14 @@ internal class Program
 {
     static async Task Main(string[] args){
         ConfigureLogger();
+        string currentDirectory = Directory.GetCurrentDirectory();
+        if (PathUtil.ContainsChinese(currentDirectory))
+        {
+            Log.Error("Current directory contains Chinese characters: {Directory}", currentDirectory);
+            Console.WriteLine("运行时错误: 当前目录包含中文字符。请将应用程序移动到仅包含英文路径的目录中。");
+            Console.ReadKey();
+            Environment.Exit(1);
+        }
         AppState.Debug = Debug.Get();
         Log.Information("OpenNEL github: {github}",AppInfo.GithubUrL);
         Log.Information("版本: {version}",AppInfo.AppVersion);

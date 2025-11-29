@@ -4,5 +4,6 @@ export default [
   { key: 'rent', label: '租赁服' },
   { key: 'plugins', label: '插件' },
   { key: 'game', label: '游戏' },
-  { key: 'about', label: '关于' }
+  { key: 'about', label: '关于' },
+  { key: 'settings', label: '设置' }
 ]
