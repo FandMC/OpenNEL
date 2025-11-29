@@ -25,7 +25,6 @@ internal static class MessageFactory
             new ListRentalServersMessage(),
             new OpenRentalServerMessage(),
             new CreateRentalCharacterMessage(),
-            new StartRentalProxyMessage(),
             new OpenServerMessage(),
             new CreateRoleNamedMessage(),
             new JoinGameMessage(),

@@ -39,7 +39,7 @@ internal class GameManager
         var available = UserManager.Instance.GetLastAvailableUser();
         if (available == null) return false;
         var entityId = available.UserId;
-        var token = available.AccessToken;
+        var token = UserManager.Instance.GetAvailableUser(entityId)?.AccessToken ?? available.AccessToken;
         var auth = new Codexus.OpenSDK.Entities.X19.X19AuthenticationOtp { EntityId = entityId, Token = token };
 
         var roles = await auth.Api<EntityQueryGameCharacters, Entities<EntityGameCharacter>>(
@@ -89,6 +89,8 @@ internal class GameManager
                 {
                     try
                     {
+                        var latest = UserManager.Instance.GetAvailableUser(entityId);
+                        var currentToken = latest?.AccessToken ?? token;
                         var success = await AppState.Services!.Yggdrasil.JoinServerAsync(new Codexus.OpenSDK.Entities.Yggdrasil.GameProfile
                         {
                             GameId = serverId,
@@ -96,7 +98,7 @@ internal class GameManager
                             BootstrapMd5 = pair.BootstrapMd5,
                             DatFileMd5 = pair.DatFileMd5,
                             Mods = JsonSerializer.Deserialize<Codexus.OpenSDK.Entities.Yggdrasil.ModList>(mods)!,
-                            User = new Codexus.OpenSDK.Entities.Yggdrasil.UserProfile { UserId = int.Parse(entityId), UserToken = token }
+                            User = new Codexus.OpenSDK.Entities.Yggdrasil.UserProfile { UserId = int.Parse(entityId), UserToken = currentToken }
                         }, sid);
                         if (success.IsSuccess)
                         {
