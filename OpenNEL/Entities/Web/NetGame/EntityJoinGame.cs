@@ -34,6 +34,12 @@ public class EntityJoinGame
 
 	[JsonPropertyName("token")]
 	public string NexusToken { get; set; } = string.Empty;
+	
+	[JsonPropertyName("serverId")]
+	public string ServerId { get; set; } = string.Empty;
+	
+	[JsonPropertyName("serverName")]
+	public string ServerName { get; set; } = string.Empty;
 
 	[JsonPropertyName("socks5")]
 	public EntitySocks5 Socks5 { get; set; } = new EntitySocks5();

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, provide } from 'vue'
+import connection from './utils/connection.js'
 import Sidebar from './components/Sidebar.vue'
 import ContentArea from './components/ContentArea.vue'
 import Notifications from './components/Notifications.vue'
@@ -14,6 +15,7 @@ function push(title, text, level = 'info') {
 function close(id) { notes.value = notes.value.filter(n => n.id !== id) }
 onMounted(() => { push('通知', '通知系统已加载', 'ok') })
 provide('notify', (title, text, level = 'info') => push(title, text, level))
+provide('connection', connection)
 </script>
 
 <template>

@@ -1,4 +1,4 @@
-﻿namespace OpenNEL;
+﻿namespace OpenNEL.Utils;
 
 public static class Md5Mapping
 {

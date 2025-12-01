@@ -127,7 +127,6 @@ function selectAccount(id) {
   if (!socket || socket.readyState !== 1) return
   selectedAccountId.value = id
   try { socket.send(JSON.stringify({ type: 'select_account', entityId: id })) } catch {}
-  try { socket.send(JSON.stringify({ type: 'open_server', serverId: joinServerId.value, serverName: joinServerName.value })) } catch {}
   
 }
 function startJoin() {
@@ -203,11 +202,16 @@ onMounted(() => {
             try { socket.send(JSON.stringify({ type: 'open_server', serverId: joinServerId.value, serverName: joinServerName.value })) } catch {}
           }
         }
-      } else if (msg.type === 'server_roles' && Array.isArray(msg.items)) {
-        roles.value = msg.items
-        // 自动选择唯一角色
-        if (msg.items.length === 1) {
-          selectedRoleId.value = msg.items[0].id
+      } else if (msg.type === 'server_roles') {
+        let list = []
+        if (Array.isArray(msg.items)) {
+          list = msg.items
+        } else if (msg.entities && Array.isArray(msg.entities.entities)) {
+          list = msg.entities.entities.map(e => ({ id: e.name, name: e.name }))
+        }
+        roles.value = list
+        if (list.length === 1) {
+          selectedRoleId.value = list[0].id
         }
         if (msg.createdName) {
           const found = roles.value.find(r => r.name === msg.createdName)

@@ -81,6 +81,17 @@
         </button>
       </template>
     </Modal>
+    <Modal v-model="showCaptcha" title="验证码">
+      <div class="form">
+        <label>验证码</label>
+        <input v-model="captchaText" class="input" placeholder="填写验证码" />
+        <img v-if="captchaUrl" :src="captchaUrl" alt="验证码" style="margin-top:8px;border:1px solid var(--color-border);border-radius:8px;max-width:100%" />
+      </div>
+      <template #actions>
+        <button class="btn" @click="confirmCaptcha">确定</button>
+        <button class="btn secondary" @click="cancelCaptcha">取消</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -88,6 +99,7 @@
 import Modal from '../components/Modal.vue'
 import appConfig from '../config/app.js'
 import { ref, onMounted, onUnmounted, computed, inject } from 'vue'
+import connection from '../utils/connection.js'
 const notify = inject('notify', null)
 const wsUrl = appConfig.getWsUrl()
 const announcementText = ref('加载中...')
@@ -107,8 +119,6 @@ const pc4399IdCard = ref('')
 const pc4399RealName = ref('')
 const neteaseEmail = ref('')
 const neteasePassword = ref('')
-const connected = ref(false)
-const connecting = ref(true)
 let socket
 const freeMessage = ref('')
 const freeBusy = ref(false)
@@ -117,9 +127,19 @@ const loginLoading = ref({})
 const currentActivatingId = ref('')
 const addLoading = ref(false)
 const noticeLoading = ref(false)
+const showCaptcha = ref(false)
+const captchaText = ref('')
+const captchaUrl = ref('')
+const captchaSessionId = ref('')
+const captchaAccount = ref('')
+const captchaPassword = ref('')
+function generateCaptchaIdentifier() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+}
 function isLoginLoading(acc) { return !!loginLoading.value[(acc && acc.entityId) || ''] }
 function getFreeAccount() {
-  if (!socket || socket.readyState !== 1) return
+  const s = connection.socket.value
+  if (!s || s.readyState !== 1) return
   freeBusy.value = true
   freeMessage.value = ''
   freeLevel.value = ''
@@ -127,7 +147,7 @@ function getFreeAccount() {
     if (pc4399CaptchaUrl.value && pc4399SessionId.value) {
       const cap = pc4399Captcha.value && pc4399Captcha.value.trim()
       if (!cap) { freeBusy.value = false; return }
-      socket.send(JSON.stringify({
+      s.send(JSON.stringify({
         type: 'get_free_account',
         username: pc4399Account.value,
         password: pc4399Password.value,
@@ -137,17 +157,18 @@ function getFreeAccount() {
         captcha: cap
       }))
     } else {
-      socket.send(JSON.stringify({ type: 'get_free_account' }))
+      s.send(JSON.stringify({ type: 'get_free_account' }))
     }
   } catch {}
 }
 function confirmAdd() {
-  if (!socket || socket.readyState !== 1) return
+  const s = connection.socket.value
+  if (!s || s.readyState !== 1) return
   addLoading.value = true
   if (newType.value === 'cookie') {
     const v = cookieText.value && cookieText.value.trim()
     if (!v) return
-    try { socket.send(JSON.stringify({ type: 'cookie_login', cookie: v })) } catch {}
+    try { s.send(JSON.stringify({ type: 'cookie_login', cookie: v })) } catch {}
   } else if (newType.value === 'pc4399') {
     const acc = pc4399Account.value && pc4399Account.value.trim()
     const pwd = pc4399Password.value && pc4399Password.value.trim()
@@ -160,58 +181,64 @@ function confirmAdd() {
       if (!cap) { if (notify) notify('验证码为空', '请填写验证码', 'error'); return }
       if (!pc4399SessionId.value) { if (notify) notify('会话缺失', '请刷新验证码后重试', 'warn'); return }
       if (notify) notify('提交验证码', '正在验证...', 'info')
-      try { socket.send(JSON.stringify({ type: 'login_4399', account: acc, password: pwd, sessionId: pc4399SessionId.value, captcha: cap })) } catch {}
+      try { s.send(JSON.stringify({ type: 'login_4399', account: acc, password: pwd, sessionId: pc4399SessionId.value, captcha: cap })) } catch {}
     } else {
-      try { socket.send(JSON.stringify({ type: 'login_4399', account: acc, password: pwd })) } catch {}
+      try { s.send(JSON.stringify({ type: 'login_4399', account: acc, password: pwd })) } catch {}
     }
   } else {
     const email = neteaseEmail.value && neteaseEmail.value.trim()
     const pwd = neteasePassword.value && neteasePassword.value.trim()
     if (!email || !pwd) return
-    try { socket.send(JSON.stringify({ type: 'login_x19', email, password: pwd })) } catch {}
+    try { s.send(JSON.stringify({ type: 'login_x19', email, password: pwd })) } catch {}
   }
   
 }
 
+function confirmCaptcha() {
+  const s = connection.socket.value
+  if (!s || s.readyState !== 1) return
+  const cap = captchaText.value && captchaText.value.trim()
+  if (!cap) { if (notify) notify('验证码为空', '请填写验证码', 'error'); return }
+  if (!captchaSessionId.value) { if (notify) notify('会话缺失', '请刷新验证码后重试', 'warn'); return }
+  try { s.send(JSON.stringify({ type: 'login_4399', account: captchaAccount.value || '', password: captchaPassword.value || '', sessionId: captchaSessionId.value, captcha: cap })) } catch {}
+}
+
+function cancelCaptcha() {
+  showCaptcha.value = false
+  captchaText.value = ''
+  captchaUrl.value = ''
+  captchaSessionId.value = ''
+  captchaAccount.value = ''
+  captchaPassword.value = ''
+}
+
 function removeAccount(acc) {
-  if (!socket || socket.readyState !== 1) return
+  const s = connection.socket.value
+  if (!s || s.readyState !== 1) return
   if (!acc || !acc.entityId) return
-  try { socket.send(JSON.stringify({ type: 'delete_account', entityId: acc.entityId })) } catch {}
+  try { s.send(JSON.stringify({ type: 'delete_account', entityId: acc.entityId })) } catch {}
 }
 function activateAccount(acc) {
-  if (!socket || socket.readyState !== 1) return
+  const s = connection.socket.value
+  if (!s || s.readyState !== 1) return
   if (!acc || !acc.entityId) return
   loginLoading.value[acc.entityId] = true
   currentActivatingId.value = acc.entityId
-  try { socket.send(JSON.stringify({ type: 'activate_account', id: acc.entityId })) } catch {}
+  try { s.send(JSON.stringify({ type: 'activate_account', id: acc.entityId })) } catch {}
 }
 
-const statusText = computed(() => {
-  if (connecting.value) return '连接中'
-  return connected.value ? '已连接' : '未连接'
-})
-const statusClass = computed(() => connected.value ? 'connected' : 'disconnected')
+const statusText = computed(() => connection.statusText.value)
+const statusClass = computed(() => connection.statusClass.value)
 
 onMounted(() => {
   try {
-    socket = new WebSocket(wsUrl)
-    socket.onopen = () => {
-      connected.value = true
-      connecting.value = false
-      try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {}
-    }
-    socket.onclose = () => {
-      connected.value = false
-      connecting.value = false
-    }
-    socket.onerror = () => {
-      connected.value = false
-      connecting.value = false
-    }
-    socket.onmessage = (e) => {
-      let msg
-      try { msg = JSON.parse(e.data) } catch { msg = null }
-      if (!msg || !msg.type) return
+    socket = connection.connect()
+    if (socket) {
+      socket.addEventListener('open', () => { try { socket.send(JSON.stringify({ type: 'list_accounts' })) } catch {} })
+      socket.onmessage = (e) => {
+        let msg
+        try { msg = JSON.parse(e.data) } catch { msg = null }
+        if (!msg || !msg.type) return
       if (msg.type === 'accounts' && Array.isArray(msg.items)) {
         accounts.value = msg.items
       } else if (msg.type === 'Success_login') {
@@ -225,6 +252,7 @@ onMounted(() => {
           if (loginLoading.value[msg.entityId]) loginLoading.value[msg.entityId] = false
           addLoading.value = false
           showAdd.value = false
+          showCaptcha.value = false
           cookieText.value = ''
           pc4399Account.value = ''
           pc4399Password.value = ''
@@ -232,6 +260,11 @@ onMounted(() => {
           pc4399CaptchaUrl.value = ''
           pc4399SessionId.value = ''
           pc4399NeedCaptcha.value = false
+          captchaText.value = ''
+          captchaUrl.value = ''
+          captchaSessionId.value = ''
+          captchaAccount.value = ''
+          captchaPassword.value = ''
           neteaseEmail.value = ''
           neteasePassword.value = ''
           freeMessage.value = ''
@@ -242,9 +275,7 @@ onMounted(() => {
       } else if (msg.type === 'login_error') {
         const needCap = (msg.message || '').toLowerCase().includes('captcha')
         if (needCap) {
-          pc4399NeedCaptcha.value = true
-          newType.value = 'pc4399'
-          showAdd.value = true
+          showCaptcha.value = true
           if (notify) notify('需要验证码', '请完成验证码后重试', 'warn')
         } else {
           if (notify) notify('账号登录失败', msg.message || '登录失败', 'error')
@@ -257,9 +288,13 @@ onMounted(() => {
       } else if (msg.type === 'login_4399_error') {
         const needCap = (msg.message || '').toLowerCase().includes('captcha')
         if (needCap) {
-          pc4399NeedCaptcha.value = true
-          newType.value = 'pc4399'
-          showAdd.value = true
+          const sid = msg.sessionId || msg.session_id || captchaSessionId.value || generateCaptchaIdentifier()
+          const url = msg.captchaUrl || msg.captcha_url || (`https://ptlogin.4399.com/ptlogin/captcha.do?captchaId=` + sid)
+          captchaSessionId.value = sid
+          captchaUrl.value = url
+          captchaAccount.value = msg.account || ''
+          captchaPassword.value = msg.password || ''
+          showCaptcha.value = true
           if (notify) notify('需要验证码', '请完成验证码后重试', 'warn')
         } else {
           if (notify) notify('操作失败', msg.message || '失败', 'error')
@@ -302,16 +337,15 @@ onMounted(() => {
       } else if (msg.type === 'connected') {
       } else if (msg.type === 'channels') {
       } else if (msg.type === 'captcha_required') {
-        pc4399Account.value = msg.account || pc4399Account.value || ''
-        pc4399Password.value = msg.password || pc4399Password.value || ''
-        pc4399CaptchaUrl.value = msg.captchaUrl || msg.captcha_url || ''
-        pc4399SessionId.value = msg.sessionId || msg.session_id || ''
-        pc4399NeedCaptcha.value = true
-        newType.value = 'pc4399'
-        showAdd.value = true
+        captchaAccount.value = msg.account || ''
+        captchaPassword.value = msg.password || ''
+        captchaUrl.value = msg.captchaUrl || msg.captcha_url || ''
+        captchaSessionId.value = msg.sessionId || msg.session_id || ''
+        showCaptcha.value = true
         if (notify) notify('需要验证码', '请完成验证码后重试', 'warn')
       }
-    }
+      }
+      }
   } catch {}
   fetchAnnouncement()
   initNotice()

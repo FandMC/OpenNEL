@@ -24,14 +24,12 @@ internal class OpenServerMessage : IWsMessage
         try
         {
             if(AppState.Debug)Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, last.UserId);
-            var auth = new Codexus.OpenSDK.Entities.X19.X19AuthenticationOtp { EntityId = last.UserId, Token = last.AccessToken };
-            var roles = await auth.Api<EntityQueryGameCharacters, Entities<EntityGameCharacter>>(
-                "/game-character/query/user-game-characters",
-                new EntityQueryGameCharacters { GameId = serverId!, UserId = last.UserId });
-            var items = roles.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
+            Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
+
+            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
             return new { type = "server_roles", items, serverId };
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Log.Error(ex, "获取服务器角色失败: serverId={ServerId}", serverId);
             return new { type = "server_roles_error", message = "获取失败" };

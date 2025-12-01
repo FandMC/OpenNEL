@@ -41,17 +41,25 @@
         {{ item.label }}
       </li>
     </ul>
+    <div class="menu-footer">
+      <div class="conn" :class="connClass">{{ connText }}</div>
+      <div class="actions">
+        <button class="btn" @click="doDisconnect">断开</button>
+        <button class="btn" @click="doReconnect">重连</button>
+      </div>
+    </div>
   </nav>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, onMounted, watch, nextTick, computed } from 'vue'
+import { defineProps, defineEmits, ref, onMounted, watch, nextTick, computed, inject } from 'vue'
 const props = defineProps({
   modelValue: String,
   items: Array,
   links: Object
 })
 defineEmits(['update:modelValue'])
+const connection = inject('connection', null)
 
 const listRef = ref(null)
 const itemRefs = ref([])
@@ -82,6 +90,11 @@ function updateIndicator() {
 
 onMounted(updateIndicator)
 watch(() => props.modelValue, updateIndicator)
+
+const connText = computed(() => connection ? connection.statusText.value : '未连接')
+const connClass = computed(() => connection ? connection.statusClass.value : 'disconnected')
+function doDisconnect() { if (connection) connection.disconnect() }
+function doReconnect() { if (connection) connection.reconnect() }
 </script>
 
 <style scoped>
@@ -154,4 +167,18 @@ watch(() => props.modelValue, updateIndicator)
   z-index: 1;
   transition: transform 200ms ease, height 200ms ease;
 }
+.menu-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.conn { font-size: 12px; }
+.conn.connected { color: #10b981; }
+.conn.disconnected { color: #ef4444; }
+.actions { display: flex; gap: 8px; }
+.btn { padding: 6px 10px; border: 1px solid var(--glass-border); background: var(--glass-surface); color: var(--color-text); border-radius: 8px; cursor: pointer; }
+.btn:hover { opacity: 0.9; }
 </style>

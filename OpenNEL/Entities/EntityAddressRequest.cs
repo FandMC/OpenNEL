@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace OpenNEL;
+namespace OpenNEL.Entities;
 
 public class EntityAddressRequest
 {
