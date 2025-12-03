@@ -4,6 +4,6 @@ public static class CrcSalt
 {
     public static async Task<string> Compute()
     {
-        return "22AC4B0143EFFC80F2905B267D4D84D3";
+        return "6682E0F553668A406E16A99B6D76E283";
     }
 }
