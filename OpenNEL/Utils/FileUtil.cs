@@ -5,48 +5,82 @@ namespace OpenNEL.Utils;
 
 public static class FileUtil
 {
-    public static bool OverwriteWithText(string path, string text, Encoding? encoding = null)
+    public static bool DeleteAllFiles(string dirPath, bool recursive = false)
     {
         try
         {
-            if (!File.Exists(path))
+            if (!Directory.Exists(dirPath))
             {
-                Log.Error("目标文件不存在: {Path}", path);
+                Log.Error("目标目录不存在: {Dir}", dirPath);
                 return false;
             }
-            encoding ??= Encoding.UTF8;
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
-            fs.SetLength(0);
-            var bytes = encoding.GetBytes(text);
-            fs.Write(bytes, 0, bytes.Length);
-            fs.Flush(true);
-            return true;
+            var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var files = Directory.GetFiles(dirPath, "*", option);
+            var ok = true;
+            foreach (var f in files)
+            {
+                try
+                {
+                    if (File.Exists(f))
+                    {
+                        var attr = File.GetAttributes(f);
+                        if ((attr & FileAttributes.ReadOnly) != 0)
+                        {
+                            File.SetAttributes(f, attr & ~FileAttributes.ReadOnly);
+                        }
+                        File.Delete(f);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ok = false;
+                    Log.Error(ex, "删除文件失败: {File}", f);
+                }
+            }
+            if (recursive)
+            {
+                var dirs = Directory.GetDirectories(dirPath, "*", SearchOption.AllDirectories);
+                Array.Sort(dirs, (a, b) => b.Length.CompareTo(a.Length));
+                foreach (var d in dirs)
+                {
+                    try
+                    {
+                        if (Directory.Exists(d))
+                        {
+                            var attr = File.GetAttributes(d);
+                            if ((attr & FileAttributes.ReadOnly) != 0)
+                            {
+                                File.SetAttributes(d, attr & ~FileAttributes.ReadOnly);
+                            }
+                            Directory.Delete(d, true);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ok = false;
+                        Log.Error(ex, "删除目录失败: {Dir}", d);
+                    }
+                }
+                try
+                {
+                    var rootAttr = File.GetAttributes(dirPath);
+                    if ((rootAttr & FileAttributes.ReadOnly) != 0)
+                    {
+                        File.SetAttributes(dirPath, rootAttr & ~FileAttributes.ReadOnly);
+                    }
+                    Directory.Delete(dirPath, true);
+                }
+                catch (Exception ex)
+                {
+                    ok = false;
+                    Log.Error(ex, "删除根目录失败: {Dir}", dirPath);
+                }
+            }
+            return ok;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "复写文件失败: {Path}", path);
-            return false;
-        }
-    }
-
-    public static bool OverwriteWithBytes(string path, ReadOnlySpan<byte> data)
-    {
-        try
-        {
-            if (!File.Exists(path))
-            {
-                Log.Error("目标文件不存在: {Path}", path);
-                return false;
-            }
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
-            fs.SetLength(0);
-            fs.Write(data);
-            fs.Flush(true);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "复写文件失败: {Path}", path);
+            Log.Error(ex, "删除目录内所有文件失败: {Dir}", dirPath);
             return false;
         }
     }
