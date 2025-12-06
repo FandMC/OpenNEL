@@ -1,0 +1,97 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>OpenNEL_WinUI</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <Nullable>enable</Nullable>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
+    <ApplicationIcon>Assets\OpenNEL.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\OpenNEL.targetsize-24_altform-unplated.png" />
+    <EmbeddedResource Include="Assets\OpenNEL.png" />
+    <EmbeddedResource Include="Assets\OpenNEL.ico" />
+  </ItemGroup>
+<ItemGroup>
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2"/>
+        <PackageReference Include="DotNetty.Buffers" Version="0.7.6"/>
+        <PackageReference Include="DotNetty.Codecs" Version="0.7.6"/>
+        <PackageReference Include="DotNetty.Common" Version="0.7.6"/>
+        <PackageReference Include="DotNetty.Handlers" Version="0.7.6"/>
+        <PackageReference Include="DotNetty.Transport" Version="0.7.6"/>
+        <PackageReference Include="OpenTl.Netty.Socks" Version="1.0.2"/>
+        <PackageReference Include="Serilog" Version="4.3.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
+        <PackageReference Include="SharpCompress" Version="0.41.0"/>
+        <PackageReference Include="SharpZipLib" Version="1.4.2"/>
+        <PackageReference Include="System.IO.Hashing" Version="10.0.0"/>
+        <PackageReference Include="YamlDotNet" Version="16.3.0"/>
+        <PackageReference Include="Selenium.WebDriver" Version="4.38.0"/>
+        <PackageReference Include="Selenium.Support" Version="4.38.0"/>
+        <PackageReference Include="WebDriverManager" Version="2.17.6"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8"/>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+<ItemGroup>
+        <Reference Include="Codexus.Cipher">
+            <HintPath>SDK\Codexus.Cipher.dll</HintPath>
+        </Reference>
+        <Reference Include="Codexus.Development.SDK">
+            <HintPath>SDK\Codexus.Development.SDK.dll</HintPath>
+        </Reference>
+        <Reference Include="Codexus.Game.Launcher">
+            <HintPath>SDK\Codexus.Game.Launcher.dll</HintPath>
+        </Reference>
+        <Reference Include="Codexus.Interceptors">
+            <HintPath>SDK\Codexus.Interceptors.dll</HintPath>
+        </Reference>
+        <Reference Include="Codexus.OpenSDK">
+            <HintPath>SDK\Codexus.OpenSDK.dll</HintPath>
+        </Reference>
+        <Reference Include="Downloader">
+            <HintPath>SDK\Downloader.dll</HintPath>
+        </Reference>
+  </ItemGroup>
+  <!--
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+  </ItemGroup>
+
+  <!--
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if
+    the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <!-- Publish Properties -->
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+  </PropertyGroup>
+</Project>

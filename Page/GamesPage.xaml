@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="OpenNEL_WinUI.GamesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OpenNEL_WinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+    </Page.Resources>
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <TextBlock Text="游戏" Style="{StaticResource TitleTextBlockStyle}"/>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+            <TextBlock Text="暂无会话" Visibility="{Binding Sessions.Count, Converter={StaticResource CountToVisibilityConverter}}"/>
+            <ListView ItemsSource="{x:Bind Sessions}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:GameSessionItem">
+                        <Grid Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Vertical" Spacing="4">
+                                <TextBlock Text="{x:Bind ServerName}" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind CharacterDisplay}" Style="{StaticResource CaptionTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind StatusText}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button Content="复制地址" Click="CopyIpButton_Click" Tag="{x:Bind LocalAddress}"/>
+                                <Button Content="关闭通道" Click="ShutdownButton_Click" Tag="{x:Bind Identifier}" Foreground="#EF4444"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </Grid>
+</Page>
