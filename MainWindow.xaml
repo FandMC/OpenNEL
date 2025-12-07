@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="OpenNEL_WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OpenNEL_WinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Open NEL">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <NavigationView x:Name="NavView"
+                        PaneDisplayMode="Left"
+                        IsBackButtonVisible="Collapsed"
+                        SelectionChanged="NavView_SelectionChanged"
+                        Loaded="NavView_Loaded"
+                        SizeChanged="NavView_SizeChanged">
+            <Frame x:Name="ContentFrame"/>
+        </NavigationView>
+
+        <Grid IsHitTestVisible="False">
+            <local:NotificationHost HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"/>
+        </Grid>
+    </Grid>
+</Window>

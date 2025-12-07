@@ -1,0 +1,58 @@
+<UserControl
+    x:Class="OpenNEL_WinUI.AddAccountContent"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OpenNEL_WinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <Pivot x:Name="AccountTypePivot">
+            <!-- Cookie Tab -->
+            <PivotItem Header="Cookie">
+                <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <TextBox x:Name="CookieInput" 
+                             PlaceholderText="填写Cookie" 
+                             AcceptsReturn="True" 
+                             Height="100"/>
+                </StackPanel>
+            </PivotItem>
+
+            <!-- PC4399 Tab -->
+            <PivotItem Header="PC4399">
+                <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <TextBox x:Name="Pc4399Username" Header="账号" PlaceholderText="填写账号"/>
+                    <PasswordBox x:Name="Pc4399Password" Header="密码" PlaceholderText="填写密码"/>
+                    
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="获取账号" Click="GetFreeAccount_Click"/>
+                        <TextBlock x:Name="FreeAccountMsg" 
+                                   Grid.Column="1" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="Red" 
+                                   TextWrapping="Wrap"/>
+                    </Grid>
+                    
+                    <!-- Captcha placeholder -->
+                    <StackPanel x:Name="CaptchaPanel" Visibility="Collapsed" Spacing="5">
+                        <TextBox x:Name="CaptchaInput" Header="验证码" PlaceholderText="填写验证码"/>
+                        <Image x:Name="CaptchaImage" Height="40" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </StackPanel>
+            </PivotItem>
+
+            <!-- Netease Tab -->
+            <PivotItem Header="网易邮箱">
+                <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <TextBox x:Name="NeteaseEmail" Header="邮箱" PlaceholderText="填写邮箱"/>
+                    <PasswordBox x:Name="NeteasePassword" Header="密码" PlaceholderText="填写密码"/>
+                </StackPanel>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</UserControl>
