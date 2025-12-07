@@ -50,7 +50,7 @@ jobs:
     # Build the project
     - name: Build project
       run: |
-        dotnet build ${{ env.Project_Name }} -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore /p:UseRidGraph=true /p:PublishReadyToRun=false
+        dotnet publish ${{ env.Project_Name }} -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore /p:UseRidGraph=true /p:PublishReadyToRun=false
         echo "Build completed for ${{ matrix.configuration }} on ${{ matrix.platform }}"
 
     # Publish the application for each platform
