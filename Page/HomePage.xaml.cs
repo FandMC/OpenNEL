@@ -25,7 +25,7 @@ namespace OpenNEL_WinUI
         private async void AddAccountButton_Click(object sender, RoutedEventArgs e)
         {
             var dialogContent = new AddAccountContent();
-            
+
             ContentDialog dialog = new ContentDialog
             {
                 XamlRoot = this.XamlRoot,

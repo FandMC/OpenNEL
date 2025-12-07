@@ -16,6 +16,10 @@
                              PlaceholderText="填写Cookie" 
                              AcceptsReturn="True" 
                              Height="100"/>
+                    <Button x:Name="PasteAndLoginButton" 
+                            Content="粘贴" 
+                            Click="PasteAndLoginButton_Click"
+                            HorizontalAlignment="Stretch"/>
                 </StackPanel>
             </PivotItem>
 

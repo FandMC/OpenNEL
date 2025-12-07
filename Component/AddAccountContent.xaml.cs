@@ -2,8 +2,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
-using System.Threading.Tasks;
 using OpenNEL_WinUI.Handlers.Login;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace OpenNEL_WinUI
 {
@@ -18,12 +18,12 @@ namespace OpenNEL_WinUI
         public string SelectedType => (AccountTypePivot.SelectedItem as PivotItem)?.Header?.ToString();
 
         public string CookieText => CookieInput.Text;
-        
+
         public string Pc4399User => Pc4399Username.Text;
         public string Pc4399Pass => Pc4399Password.Password;
         public string Pc4399Captcha => CaptchaInput.Text;
         public string Pc4399SessionId => _pc4399SessionId;
-        
+
         public string NeteaseMail => NeteaseEmail.Text;
         public string NeteasePass => NeteasePassword.Password;
 
@@ -97,6 +97,23 @@ namespace OpenNEL_WinUI
             }
             catch
             {
+            }
+        }
+
+        private async void PasteAndLoginButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 从剪贴板获取文本内容
+                var clipboardContent = Clipboard.GetContent();
+                var clipboardText = await clipboardContent.GetTextAsync();
+
+                // 将获取到的文本设置到Cookie输入框中
+                CookieInput.Text = clipboardText;
+            }
+            catch (Exception ex)
+            {
+
             }
         }
     }

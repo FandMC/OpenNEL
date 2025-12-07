@@ -145,11 +145,11 @@ namespace OpenNEL_WinUI
                             {
                                 continue;
                             }
-                        var rSel = await RunOnStaAsync(() => new SelectAccount().Execute(accId));
-                        var req = new EntityJoinGame { ServerId = s.EntityId, ServerName = s.Name, Role = roleId, GameId = s.EntityId };
-                        var rStart = await Task.Run(async () => await new JoinGame().Execute(req));
-                        var tv = rStart.GetType().GetProperty("type")?.GetValue(rStart) as string;
-                        if (string.Equals(tv, "channels_updated")) { NotificationHost.ShowGlobal("启动成功", ToastLevel.Success); break; }
+                            var rSel = await RunOnStaAsync(() => new SelectAccount().Execute(accId));
+                            var req = new EntityJoinGame { ServerId = s.EntityId, ServerName = s.Name, Role = roleId, GameId = s.EntityId };
+                            var rStart = await Task.Run(async () => await new JoinGame().Execute(req));
+                            var tv = rStart.GetType().GetProperty("type")?.GetValue(rStart) as string;
+                            if (string.Equals(tv, "channels_updated")) { NotificationHost.ShowGlobal("启动成功", ToastLevel.Success); break; }
                         }
                         else if (result == ContentDialogResult.Secondary)
                         {
@@ -190,6 +190,8 @@ namespace OpenNEL_WinUI
                                         }
                                         roleItems = ri;
                                         NotificationHost.ShowGlobal("角色创建成功", ToastLevel.Success);
+                                        // 添加角色成功后关闭加入服务器弹窗
+                                        break;
                                     }
                                 }
                             }
