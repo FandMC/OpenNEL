@@ -1,0 +1,74 @@
+# This workflow builds and publishes the OpenNEL WinUI application
+# for both Debug and Release configurations
+
+name: Build and Publish OpenNEL
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        platform: [x64, x86, arm64]
+
+    runs-on: windows-latest
+
+    env:
+      Project_Name: OpenNEL_WinUI.csproj
+      Solution_Name: OpenNEL_WinUI.slnx
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Install the .NET SDK
+    - name: Install .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    # Add MSBuild to the PATH
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    # Restore dependencies with runtime identifier
+    - name: Restore dependencies
+      run: |
+        dotnet restore ${{ env.Project_Name }} -r win-${{ matrix.platform }} /p:UseRidGraph=true /p:PublishReadyToRun=false
+        echo "Restored dependencies for ${{ matrix.platform }}"
+
+    # Build the project
+    - name: Build project
+      run: |
+        dotnet build ${{ env.Project_Name }} -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore /p:UseRidGraph=true /p:PublishReadyToRun=false
+        echo "Build completed for ${{ matrix.configuration }} on ${{ matrix.platform }}"
+
+    # Publish the application for each platform
+    - name: Publish application
+      run: |
+        # Create output directory
+        $outputDir = "publish/${{ matrix.configuration }}/${{ matrix.platform }}"
+        New-Item -ItemType Directory -Path $outputDir -Force
+        
+        # Publish the application with proper settings to avoid NETSDK1094 error
+        dotnet publish ${{ env.Project_Name }} -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} -o $outputDir --no-build /p:PublishReadyToRun=false /p:PublishTrimmed=false /p:UseRidGraph=true
+        
+        # List published files for verification
+        Get-ChildItem -Path $outputDir
+
+    # Upload build artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opennel-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: publish/${{ matrix.configuration }}/${{ matrix.platform }}/
