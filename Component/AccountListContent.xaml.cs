@@ -11,6 +11,7 @@ namespace OpenNEL_WinUI
 {
     public sealed partial class AccountListContent : UserControl
     {
+        static bool _dialogOpen;
         public ObservableCollection<AccountModel> Accounts
         {
             get => (ObservableCollection<AccountModel>)GetValue(AccountsProperty);
@@ -60,7 +61,8 @@ namespace OpenNEL_WinUI
                 {
                     EntityId = u.UserId,
                     Channel = u.Channel,
-                    Status = u.Authorized ? "online" : "offline"
+                    Status = u.Authorized ? "online" : "offline",
+                    Alias = u.Alias
                 });
             }
         }
@@ -118,6 +120,12 @@ namespace OpenNEL_WinUI
                                 var dialogContent = new CaptchaContent();
                                 var dlg = CreateDialog(dialogContent, "输入验证码");
                                 dialogContent.SetCaptcha(sidVal, urlVal);
+                                if (_dialogOpen)
+                                {
+                                    return;
+                                }
+                                _dialogOpen = true;
+                                dlg.Closed += (s,e) => { _dialogOpen = false; };
                                 dlg.PrimaryButtonClick += async (s2, e2) =>
                                 {
                                     e2.Cancel = true;
@@ -170,6 +178,21 @@ namespace OpenNEL_WinUI
                 }
             }
         }
+
+        private async void AliasBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb && tb.Tag is AccountModel account)
+            {
+                try
+                {
+                    UserManager.Instance.UpdateUserAlias(account.EntityId, account.Alias);
+                    await UserManager.Instance.SaveUsersToDiskAsync();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "保存描述失败");
+                }
+            }
+        }
     }
 }
-

@@ -1,7 +1,7 @@
 namespace OpenNEL.type;
 class AppInfo
 {
-    public const string AppVersion = "1.0.9";
+    public const string AppVersion = "1.1.0";
 
     public const string GithubUrL = "https://github.com/FandMC/OpenNEL";
     

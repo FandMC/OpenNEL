@@ -5,12 +5,15 @@ using System.Threading.Tasks;
 using System.Linq;
 using OpenNEL_WinUI.Handlers.Login;
 using OpenNEL.Manager;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace OpenNEL_WinUI
 {
     public sealed partial class AddAccountContent : UserControl
     {
         public event Action AutoLoginSucceeded;
+        public event Action ConfirmRequested;
+        public event Action CancelRequested;
         private string _pc4399SessionId;
         public AddAccountContent()
         {
@@ -31,6 +34,7 @@ namespace OpenNEL_WinUI
         private string _pc4399CaptchaUrl;
         public string Pc4399SessionId => _pc4399SessionId;
         public string Pc4399CaptchaUrl => _pc4399CaptchaUrl;
+        public string Pc4399Captcha => Pc4399CaptchaInput?.Text ?? string.Empty;
         
         public string NeteaseMail => NeteaseEmail.Text;
         public string NeteasePass => NeteasePassword.Password;
@@ -121,6 +125,15 @@ namespace OpenNEL_WinUI
             _pc4399CaptchaUrl = captchaUrl ?? string.Empty;
             Pc4399Username.Text = account ?? string.Empty;
             Pc4399Password.Password = password ?? string.Empty;
+            Pc4399CaptchaPanel.Visibility = string.IsNullOrWhiteSpace(_pc4399CaptchaUrl) ? Visibility.Collapsed : Visibility.Visible;
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(_pc4399CaptchaUrl))
+                {
+                    Pc4399CaptchaImage.Source = new BitmapImage(new Uri(_pc4399CaptchaUrl));
+                }
+            }
+            catch { }
         }
 
         public bool TryDetectSuccess(object result)
@@ -146,6 +159,16 @@ namespace OpenNEL_WinUI
             var users = UserManager.Instance.GetUsersNoDetails();
             if (users.Any(u => u.Authorized)) return true;
             return false;
+        }
+
+        private void ConfirmButton_Click(object sender, RoutedEventArgs e)
+        {
+            try { ConfirmRequested?.Invoke(); } catch { }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            try { CancelRequested?.Invoke(); } catch { }
         }
     }
 }

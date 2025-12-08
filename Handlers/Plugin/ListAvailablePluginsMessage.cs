@@ -14,11 +14,10 @@ namespace OpenNEL_WinUI.Handlers.Plugin
         {
             try
             {
-                var u = Environment.GetEnvironmentVariable("NEL_PLUGIN_LIST_URL");
-                if (string.IsNullOrWhiteSpace(u)) u = string.IsNullOrWhiteSpace(url) ? "https://api.opennel.top/v1/get/pluginlist" : url;
+                var u = string.IsNullOrWhiteSpace(url) ? "https://api.fandmc.cn/v1/pluginlast" : url;
                 using var http = new HttpClient();
                 http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var text = await http.GetStringAsync(u);
+                var text = await http.GetStringAsync(u).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(text);
                 var itemsArr = GetArray(doc.RootElement);
                 var list = itemsArr.Select(Normalize).Where(x => x != null).ToArray();
@@ -42,9 +41,15 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 var keys = new[] { "items", "data", "plugins", "list" };
                 foreach (var k in keys)
                 {
-                    if (root.TryGetProperty(k, out var el) && el.ValueKind == JsonValueKind.Array)
+                    if (root.TryGetProperty(k, out var el))
                     {
-                        return el.EnumerateArray().ToArray();
+                        if (el.ValueKind == JsonValueKind.Array)
+                            return el.EnumerateArray().ToArray();
+                        if (k == "plugins" && el.ValueKind == JsonValueKind.Object)
+                        {
+                            if (el.TryGetProperty("items", out var inner) && inner.ValueKind == JsonValueKind.Array)
+                                return inner.EnumerateArray().ToArray();
+                        }
                     }
                 }
             }
@@ -61,6 +66,7 @@ namespace OpenNEL_WinUI.Handlers.Plugin
             var shortDescription = FirstString(el, "shortDescription", "description", "desc");
             var publisher = FirstString(el, "publisher", "author", "vendor");
             var downloadUrl = FirstString(el, "downloadUrl", "url", "link", "href");
+            var depends = FirstString(el, "depends", "dependency", "dep");
             return new
             {
                 id = (id ?? string.Empty).ToUpperInvariant(),
@@ -69,7 +75,8 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 logoUrl = (logoUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
                 shortDescription = shortDescription ?? string.Empty,
                 publisher = publisher ?? string.Empty,
-                downloadUrl = (downloadUrl ?? string.Empty).Replace("`", string.Empty).Trim()
+                downloadUrl = (downloadUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
+                depends = (depends ?? string.Empty).ToUpperInvariant()
             };
         }
 

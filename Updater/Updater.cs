@@ -18,15 +18,14 @@ namespace OpenNEL.Updater;
 
 public static class Updater
 {
-	private const string LastVersionUrl = "https://api.opennel.top/v1/get/lastversion";
-	private const string DownloadZipUrl = "https://api.opennel.top/v2/downloads/OpenNEL.zip";
+	private const string LastVersionUrl = "https://api.fandmc.cn/v1/lastversion";
 
 	private static readonly HttpClient Http = new HttpClient();
 
 	private static int CompareVersion(string a, string b)
 	{
-		var sa = (a ?? string.Empty).Trim().TrimStart('v', 'V').Split('.');
-		var sb = (b ?? string.Empty).Trim().TrimStart('v', 'V').Split('.');
+		var sa = a.Trim().TrimStart('v', 'V').Split('.');
+		var sb = b.Trim().TrimStart('v', 'V').Split('.');
 		var n = Math.Max(sa.Length, sb.Length);
 		for (int i = 0; i < n; i++)
 		{
@@ -43,13 +42,19 @@ public static class Updater
 		try
 		{
 			await using Stream responseStream = await Http.GetStreamAsync(uri);
-			using JsonDocument jsonDoc = await JsonDocument.ParseAsync(responseStream);
-			string latestVersion = newVersion;
-            if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array && jsonDoc.RootElement.GetArrayLength() > 0)
+            using JsonDocument jsonDoc = await JsonDocument.ParseAsync(responseStream);
+            string latestVersion = newVersion;
+            string downloadUrl = null;
+            var root = jsonDoc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
             {
-                latestVersion = jsonDoc.RootElement[0].GetProperty("version").GetString();
+                if (root.TryGetProperty("version", out var verEl)) latestVersion = verEl.GetString();
+                if (root.TryGetProperty("downloadurl", out var urlEl)) downloadUrl = urlEl.GetString();
             }
-			string downloadUrl = DownloadZipUrl;
+            else if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+            {
+                latestVersion = root[0].GetProperty("version").GetString();
+            }
 			if (!string.IsNullOrWhiteSpace(latestVersion) && !string.IsNullOrWhiteSpace(newVersion))
 			{
 				var cmp = CompareVersion(newVersion, latestVersion);
@@ -59,7 +64,7 @@ public static class Updater
 					return;
 				}
 			}
-			Log.Information("[Update] 新版本下载地址: {downloadUrl}", downloadUrl);
+			// Log.Information("[Update] 新版本下载地址: {downloadUrl}", downloadUrl);
 			SyncProgressBarUtil.ProgressBar progress = new SyncProgressBarUtil.ProgressBar(100);
 			IProgress<SyncProgressBarUtil.ProgressReport> uiProgress = new SyncCallback<SyncProgressBarUtil.ProgressReport>(delegate(SyncProgressBarUtil.ProgressReport update)
 			{
@@ -67,7 +72,7 @@ public static class Updater
 			});
 			string tempDir = PathUtil.UpdaterPath;
 			string zipPath = Path.Combine(tempDir, (latestVersion ?? newVersion) + ".zip");
-			if (downloadUrl != null)
+            if (!string.IsNullOrWhiteSpace(downloadUrl))
 			{
 				await Downloader.CreateDownloadTaskAsync(downloadUrl, zipPath, delegate(int p)
 				{
@@ -118,33 +123,32 @@ public static class Updater
                         finally
                         {
                         }
-                            Log.Information("[Update] 更新资源已下载到: {tempDir}", tempDir);
-                            string extractedExe = Path.Combine(tempDir, "OpenNEL.exe");
-                            string extractedResources = Path.Combine(tempDir, "resources");
-                            if (!File.Exists(extractedExe) || !Directory.Exists(extractedResources))
-                            {
-                                Log.Error("[Update] 解压后的文件缺失: {exe}, {resources}", extractedExe, extractedResources);
-                                return;
-                            }
-                            FileUtil.DeleteFileSafe(zipPath);
-                            string fileName = Path.GetFileName(Environment.ProcessPath);
-                            string directoryName = Path.GetDirectoryName(Environment.ProcessPath);
-                            string scriptPath = PathUtil.ScriptPath;
-                            string contents = GenerateUpdateScript(tempDir, directoryName, fileName);
-                            await File.WriteAllTextAsync(scriptPath, contents);
-                            Process.Start(new ProcessStartInfo
-                            {
-                                FileName = "cmd.exe",
-                                Arguments = "/C \"" + scriptPath + "\"",
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            });
-                            Environment.Exit(0);
-                        }
-                        catch (Exception ex2)
+                        Log.Information("[Update] 更新资源已下载到: {tempDir}", tempDir);
+                        string extractedExe = Path.Combine(tempDir, "OpenNEL.exe");
+                        if (!File.Exists(extractedExe))
                         {
-                            Log.Error("[Update] 解压或脚本生成出错: {exception}", ex2);
+                            Log.Error("[Update] 解压后的文件缺失: {exe}", extractedExe);
+                            return;
                         }
+                        FileUtil.DeleteFileSafe(zipPath);
+                        string fileName = Path.GetFileName(Environment.ProcessPath);
+                        string directoryName = Path.GetDirectoryName(Environment.ProcessPath);
+                        string scriptPath = PathUtil.ScriptPath;
+                        string contents = GenerateUpdateScript(tempDir, directoryName, fileName);
+                        await File.WriteAllTextAsync(scriptPath, contents);
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = "/C \"" + scriptPath + "\"",
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        });
+                        Environment.Exit(0);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.Error("[Update] 解压或脚本生成出错: {exception}", ex2);
+                    }
                 });
             }
             else
@@ -157,29 +161,6 @@ public static class Updater
             Log.Error("[Update] 更新过程中发生错误: {exception}", ex);
         }
     }
-
-	private static string GetSystemIdentifier()
-	{
-		string text = RuntimeInformation.ProcessArchitecture switch
-		{
-			Architecture.X64 => "x64", 
-			Architecture.Arm64 => "arm64", 
-			_ => "x64", 
-		};
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-		{
-			return "windows_" + text;
-		}
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-		{
-			return "macos_" + text;
-		}
-		if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-		{
-			return "null";
-		}
-		return "linux_" + text;
-	}
 
 	private static string GenerateUpdateScript(string tempDir, string targetDir, string exeName)
 	{

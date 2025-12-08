@@ -31,11 +31,15 @@ namespace OpenNEL_WinUI
         public void SetAccounts(List<OptionItem> items)
         {
             AccountCombo.ItemsSource = items;
+            if (AccountCombo.SelectedIndex < 0 && items != null && items.Count > 0)
+                AccountCombo.SelectedIndex = 0;
         }
 
         public void SetRoles(List<OptionItem> items)
         {
             RoleCombo.ItemsSource = items;
+            if (RoleCombo.SelectedIndex < 0 && items != null && items.Count > 0)
+                RoleCombo.SelectedIndex = 0;
         }
 
         public string SelectedAccountId => AccountCombo.SelectedValue as string ?? string.Empty;

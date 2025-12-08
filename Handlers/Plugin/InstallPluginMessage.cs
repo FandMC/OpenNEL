@@ -25,7 +25,49 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 var name = pluginEl.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
                 var version = pluginEl.TryGetProperty("version", out var verEl) ? verEl.GetString() : null;
                 var downloadUrl = pluginEl.TryGetProperty("downloadUrl", out var urlEl) ? urlEl.GetString() : null;
+                var depends = pluginEl.TryGetProperty("depends", out var depEl) ? depEl.GetString() : null;
                 if (string.IsNullOrWhiteSpace(downloadUrl) || string.IsNullOrWhiteSpace(id)) return new { type = "install_plugin_error", message = "参数错误" };
+                if (!string.IsNullOrWhiteSpace(depends))
+                {
+                    var need = !PluginManager.Instance.Plugins.Values.Any(p => string.Equals(p.Id, depends, StringComparison.OrdinalIgnoreCase));
+                    if (need)
+                    {
+                        var obj = await new ListAvailablePlugins().Execute();
+                        var itemsProp = obj.GetType().GetProperty("items");
+                        var arr = itemsProp != null ? itemsProp.GetValue(obj) as System.Array : null;
+                        string depId = depends;
+                        object depItemObj = null;
+                        if (arr != null)
+                        {
+                            foreach (var it in arr)
+                            {
+                                var iid = GetPropString(it, "id");
+                                if (!string.IsNullOrWhiteSpace(iid) && string.Equals(iid, depId, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    depItemObj = it;
+                                    break;
+                                }
+                            }
+                        }
+                        if (depItemObj == null)
+                        {
+                            Log.Error("依赖未找到: {Dep}", depId);
+                            return new { type = "install_plugin_error", message = "依赖未找到" };
+                        }
+                        var depPayload = JsonSerializer.Serialize(new
+                        {
+                            plugin = new
+                            {
+                                id = GetPropString(depItemObj, "id") ?? string.Empty,
+                                name = GetPropString(depItemObj, "name") ?? string.Empty,
+                                version = GetPropString(depItemObj, "version") ?? string.Empty,
+                                downloadUrl = GetPropString(depItemObj, "downloadUrl") ?? string.Empty,
+                                depends = GetPropString(depItemObj, "depends") ?? string.Empty
+                            }
+                        });
+                        await Execute(depPayload);
+                    }
+                }
                 Log.Information("安装插件 {PluginId} {PluginName} {PluginVersion}", id, name, version);
                 var http = new HttpClient();
                 var bytes = await http.GetByteArrayAsync(downloadUrl);
@@ -60,6 +102,13 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 Log.Error(ex, "安装插件失败");
                 return new { type = "install_plugin_error", message = ex.Message };
             }
+        }
+
+        private static string GetPropString(object o, string name)
+        {
+            var p = o.GetType().GetProperty(name);
+            var v = p != null ? p.GetValue(o) : null;
+            return v != null ? v.ToString() : null;
         }
     }
 }

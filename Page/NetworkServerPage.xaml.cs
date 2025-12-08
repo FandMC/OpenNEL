@@ -102,7 +102,10 @@ namespace OpenNEL_WinUI
                     var accounts = UserManager.Instance.GetUsersNoDetails();
                     var acctItems = accounts
                         .Where(a => a.Authorized)
-                        .Select(a => new JoinServerContent.OptionItem { Label = a.UserId + " (" + a.Channel + ")", Value = a.UserId })
+                        .Select(a => {
+                            var label = string.IsNullOrWhiteSpace(a.Alias) ? a.UserId : a.Alias;
+                            return new JoinServerContent.OptionItem { Label = label + " (" + a.Channel + ")", Value = a.UserId };
+                        })
                         .ToList();
 
                     var itemsProp = r.GetType().GetProperty("items");

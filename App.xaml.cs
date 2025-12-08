@@ -37,13 +37,6 @@ namespace OpenNEL_WinUI
                     ConfigureLogger();
                     await Hwid.ReportAsync();
                     KillVeta.Run();
-                    var currentDirectory = Directory.GetCurrentDirectory();
-                    if (PathUtil.ContainsChinese(currentDirectory))
-                    {
-                        Log.Error("Current directory contains Chinese characters: {Directory}", currentDirectory);
-                        Environment.Exit(0);
-                        return;
-                    }
                     AppState.Debug = Debug.Get();
                     AppState.Dev = Dev.Get();
                     Log.Information("OpenNEL github: {github}", AppInfo.GithubUrL);

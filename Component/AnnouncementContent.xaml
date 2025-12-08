@@ -11,7 +11,7 @@
         <StackPanel Spacing="8">
             <TextBlock Text="公告" Style="{StaticResource SubtitleTextBlockStyle}"/>
             <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4" Padding="12">
-                <TextBlock Text="暂无公告" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ContentText" Text="暂无公告" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
             </Border>
         </StackPanel>
     </Grid>

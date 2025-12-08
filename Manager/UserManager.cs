@@ -242,8 +242,8 @@ namespace OpenNEL.Manager;
 		}
 	}
 
-	public void RemoveAvailableUser(string entityId)
-	{
+        public void RemoveAvailableUser(string entityId)
+        {
 		_availableUsers.TryRemove(entityId, out EntityAvailableUser _);
 		if (_users.TryGetValue(entityId, out EntityUser value2))
 		{
@@ -277,6 +277,16 @@ namespace OpenNEL.Manager;
                 Log.Error(exception, "读取磁盘上的用户时发生错误");
                 _users.Clear();
                 UsersReadFromDisk?.Invoke();
+            }
+        }
+
+        public void UpdateUserAlias(string entityId, string alias)
+        {
+            if (string.IsNullOrWhiteSpace(entityId)) return;
+            if (_users.TryGetValue(entityId, out var user))
+            {
+                user.Alias = alias ?? string.Empty;
+                MarkDirtyAndScheduleSave();
             }
         }
 

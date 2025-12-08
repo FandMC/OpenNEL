@@ -1,10 +1,9 @@
 using System.Linq;
-using System.Text.Json;
 using Codexus.Cipher.Entities.WPFLauncher;
-using Codexus.Cipher.Protocol;
 using OpenNEL.Entities.Web;
 using OpenNEL.Manager;
 using OpenNEL.type;
+using Codexus.OpenSDK;
 
 namespace OpenNEL_WinUI.Handlers.Login
 {
@@ -14,9 +13,19 @@ namespace OpenNEL_WinUI.Handlers.Login
         {
             try
             {
-                WPFLauncher x = AppState.X19;
-                EntityX19CookieRequest req = WPFLauncher.GenerateCookie(x.LoginWithEmailAsync(email ?? string.Empty, password ?? string.Empty).GetAwaiter().GetResult(), x.MPay.GetDevice());
-                var (authOtp, channel) = x.LoginWithCookie(req);
+                var mpay = new UniSdkMPay(Projects.DesktopMinecraft, "2.1.0");
+                mpay.InitializeDeviceAsync().GetAwaiter().GetResult();
+                var user = mpay.LoginWithEmailAsync(email, password).GetAwaiter().GetResult();
+                if (user == null)
+                {
+                    return new { type = "login_error", message = "MPay登录失败" };
+                }
+                var x19sdk = AppState.Services != null ? AppState.Services.X19 : new X19();
+                var result = x19sdk.ContinueAsync(user, mpay.Device).GetAwaiter().GetResult();
+                var openAuth = result.Item1;
+                var channel = result.Item2;
+                try { X19.InterconnectionApi.LoginStart(openAuth.EntityId, openAuth.Token).GetAwaiter().GetResult(); } catch { }
+                var authOtp = new EntityAuthenticationOtp { EntityId = openAuth.EntityId, Token = openAuth.Token };
                 UserManager.Instance.AddUserToMaintain(authOtp);
                 UserManager.Instance.AddUser(new EntityUser
                 {
@@ -25,7 +34,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                     AutoLogin = false,
                     Channel = channel,
                     Type = "cookie",
-                    Details = JsonSerializer.Serialize(req)
+                    Details = ""
                 });
                 var list = new System.Collections.ArrayList();
                 list.Add(new { type = "Success_login", entityId = authOtp.EntityId, channel });
@@ -36,7 +45,7 @@ namespace OpenNEL_WinUI.Handlers.Login
             }
             catch (System.Exception ex)
             {
-                return new { type = "login_error", message = ex.Message ?? "登录失败" };
+                return new { type = "login_error", message = ex.Message};
             }
         }
     }

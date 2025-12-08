@@ -1,12 +1,11 @@
 using System;
 using System.Linq;
 using System.Text.Json;
-using Codexus.Cipher.Protocol;
 using Codexus.Cipher.Utils.Exception;
 using OpenNEL.Entities.Web.NEL;
 using OpenNEL.Manager;
-using Serilog;
 using OpenNEL.type;
+using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Login
 {
@@ -16,10 +15,11 @@ namespace OpenNEL_WinUI.Handlers.Login
         {
             try
             {
-                OpenNEL.type.AppState.Services!.X19.InitializeDeviceAsync().GetAwaiter().GetResult();
+                AppState.Services!.X19.InitializeDeviceAsync().GetAwaiter().GetResult();
+                var c4399 = new Codexus.OpenSDK.C4399();
                 string cookieJson = (!string.IsNullOrWhiteSpace(sessionId) && !string.IsNullOrWhiteSpace(captcha))
-                    ? OpenNEL.type.AppState.Services!.C4399.LoginWithPasswordAsync(account ?? string.Empty, password ?? string.Empty, sessionId!, captcha!).GetAwaiter().GetResult()
-                    : OpenNEL.type.AppState.Services!.C4399.LoginWithPasswordAsync(account ?? string.Empty, password ?? string.Empty).GetAwaiter().GetResult();
+                    ? c4399.LoginWithPasswordAsync(account ?? string.Empty, password ?? string.Empty, sessionId!, captcha!).GetAwaiter().GetResult()
+                    : c4399.LoginWithPasswordAsync(account ?? string.Empty, password ?? string.Empty).GetAwaiter().GetResult();
                 if (AppState.Debug) Log.Information("4399 Login cookieJson length: {Length}", cookieJson?.Length ?? 0);
                 if (string.IsNullOrWhiteSpace(cookieJson))
                 {
@@ -36,7 +36,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                     if (AppState.Debug) Log.Error(de, "Deserialize cookieJson failed: length={Length}", cookieJson?.Length ?? 0);
                     cookieReq = new Codexus.Cipher.Entities.WPFLauncher.EntityX19CookieRequest { Json = cookieJson };
                 }
-                var (authOtp, channel) = OpenNEL.type.AppState.X19.LoginWithCookie(cookieReq);
+                var (authOtp, channel) = AppState.X19.LoginWithCookie(cookieReq);
                 if (AppState.Debug) Log.Information("X19 LoginWithCookie: {UserId} Channel: {Channel}", authOtp.EntityId, channel);
                 UserManager.Instance.AddUserToMaintain(authOtp);
                 UserManager.Instance.AddUser(new OpenNEL.Entities.Web.EntityUser
@@ -63,7 +63,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                 var msg = new { type = "captcha_required", account, password, sessionId = captchaSid, captchaUrl = url };
                 return msg;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 var msg = ex.Message ?? string.Empty;
                 var lower = msg.ToLowerInvariant();

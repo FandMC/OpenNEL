@@ -35,6 +35,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBox Width="220" Text="{x:Bind Alias, Mode=TwoWay}" PlaceholderText="描述" LostFocus="AliasBox_LostFocus" Tag="{x:Bind}"/>
                             <Button Content="登录"
                                     Click="LoginButton_Click"
                                     Tag="{x:Bind}"

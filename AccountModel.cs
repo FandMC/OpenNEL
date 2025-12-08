@@ -9,6 +9,7 @@ namespace OpenNEL_WinUI
         private string _channel;
         private string _status = "offline";
         private bool _isLoading;
+        private string _alias = string.Empty;
 
         public string EntityId
         {
@@ -32,6 +33,12 @@ namespace OpenNEL_WinUI
         {
             get => _isLoading;
             set { _isLoading = value; OnPropertyChanged(); }
+        }
+
+        public string Alias
+        {
+            get => _alias;
+            set { _alias = value; OnPropertyChanged(); }
         }
 
         // Credentials

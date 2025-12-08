@@ -8,7 +8,11 @@
     mc:Ignorable="d">
 
     <Grid>
-        <Pivot x:Name="AccountTypePivot">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Pivot x:Name="AccountTypePivot" Grid.Row="0">
             <!-- Cookie Tab -->
             <PivotItem Header="Cookie">
                 <StackPanel Spacing="10" Margin="0,10,0,0">
@@ -38,6 +42,10 @@
                                    TextWrapping="Wrap"/>
                     </Grid>
                     
+                    <StackPanel x:Name="Pc4399CaptchaPanel" Spacing="8" Visibility="Collapsed">
+                        <Image x:Name="Pc4399CaptchaImage" Height="80" HorizontalAlignment="Left"/>
+                        <TextBox x:Name="Pc4399CaptchaInput" Header="验证码" PlaceholderText="填写验证码"/>
+                    </StackPanel>
                     
                 </StackPanel>
             </PivotItem>
@@ -50,5 +58,9 @@
                 </StackPanel>
             </PivotItem>
         </Pivot>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+            <Button Content="取消" Click="CancelButton_Click"/>
+            <Button Content="确定" Click="ConfirmButton_Click"/>
+        </StackPanel>
     </Grid>
 </UserControl>

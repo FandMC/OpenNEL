@@ -7,6 +7,7 @@ using System.IO;
 using Serilog;
 using System.Diagnostics;
 using OpenNEL.Utils;
+using Codexus.Development.SDK.Manager;
 
 namespace OpenNEL_WinUI
 {
@@ -31,6 +32,7 @@ namespace OpenNEL_WinUI
                 Plugins.Add(item);
             }
         }
+
 
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
@@ -59,6 +61,11 @@ namespace OpenNEL_WinUI
                     Log.Error(ex, "Uninstall failed");
                 }
             }
+        }
+
+        private void OpenStoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(PluginStorePage));
         }
 
         private void OpenPluginsFolderButton_Click(object sender, RoutedEventArgs e)

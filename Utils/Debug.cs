@@ -11,11 +11,11 @@ public class Debug
             var args = Environment.GetCommandLineArgs();
             foreach (var a in args)
             {
-                if (string.Equals(a, "--debug", StringComparison.OrdinalIgnoreCase)) return true;
+                if (string.Equals(a, "--debug", StringComparison.OrdinalIgnoreCase)) 
+                    return true;
             }
         }
-        catch { }
-        var env = Environment.GetEnvironmentVariable("NEL_DEBUG");
-        return string.Equals(env, "1") || string.Equals(env, "true", StringComparison.OrdinalIgnoreCase);
+        catch{}
+        return false;
     }
 }

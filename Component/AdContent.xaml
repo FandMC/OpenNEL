@@ -11,9 +11,10 @@
         <StackPanel Spacing="8">
             <TextBlock Text="广告" Style="{StaticResource SubtitleTextBlockStyle}"/>
             <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4" Padding="12" MinHeight="120" HorizontalAlignment="Stretch">
-                <Grid>
-                    <TextBlock Text="广告位" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                </Grid>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="感谢FreeCookie提供的4399小号" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    <Button Content="官方网站" HorizontalAlignment="Left" Click="OpenOfficialSiteButton_Click"/>
+                </StackPanel>
             </Border>
         </StackPanel>
     </Grid>
