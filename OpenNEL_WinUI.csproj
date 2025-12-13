@@ -17,6 +17,7 @@
     <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
     <ApplicationIcon>Assets\OpenNEL.ico</ApplicationIcon>
     <WindowsPackageType>None</WindowsPackageType>
+    
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
+    <Compile Remove="plugins\**" />
   </ItemGroup>
 <ItemGroup>
         <Reference Include="Codexus.Cipher">

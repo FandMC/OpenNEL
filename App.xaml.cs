@@ -72,7 +72,7 @@ namespace OpenNEL_WinUI
                 Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Information()
                     .WriteTo.Console()
-                    .WriteTo.Sink(OpenNEL.Utils.UiLog.CreateSink())
+                    .WriteTo.Sink(UiLog.CreateSink())
                     .WriteTo.File(filePath)
                     .CreateLogger();
                 Log.Information("日志已创建: {filePath}", filePath);
@@ -82,7 +82,7 @@ namespace OpenNEL_WinUI
                 Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Information()
                     .WriteTo.Console()
-                    .WriteTo.Sink(OpenNEL.Utils.UiLog.CreateSink())
+                    .WriteTo.Sink(UiLog.CreateSink())
                     .CreateLogger();
                 Log.Error(ex, "日志初始化失败");
             }

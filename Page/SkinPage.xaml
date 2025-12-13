@@ -1,0 +1,91 @@
+<Page
+    x:Class="OpenNEL_WinUI.SkinPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OpenNEL_WinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:BoolNegationConverter x:Key="BoolNegationConverter"/>
+        <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <local:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
+    </Page.Resources>
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <TextBlock Text="皮肤" Style="{StaticResource TitleTextBlockStyle}"/>
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Text="未登录"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="{Binding NotLogin, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+        <Grid Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8"
+              Visibility="{Binding NotLogin, Converter={StaticResource BoolNegationConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Padding="20,20,20,12" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="已安装皮肤" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="刷新" Click="RefreshButton_Click"/>
+                    <Button Content="导入皮肤" Click="ImportButton_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" Padding="20">
+                <TextBlock Text="暂无皮肤"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Visibility="{x:Bind Skins.Count, Converter={StaticResource CountToVisibilityConverter}, Mode=OneWay}"/>
+
+                <GridView x:Name="SkinsGrid" ItemsSource="{x:Bind Skins}" SizeChanged="SkinsGrid_SizeChanged">
+                    <GridView.ItemContainerStyle>
+                        <Style TargetType="GridViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Margin" Value="6"/>
+                            <Setter Property="CornerRadius" Value="8"/>
+                        </Style>
+                    </GridView.ItemContainerStyle>
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="local:SkinItem">
+                            <Grid Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" MinWidth="240" Padding="12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Image Grid.Row="0" Height="120" Source="{x:Bind PreviewUrl, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill"/>
+                                <TextBlock Grid.Row="1" Text="{x:Bind Name}" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,8,0,0"/>
+                                <Button Grid.Row="2" Content="应用该皮肤" HorizontalAlignment="Left" Margin="0,8,0,0" Click="ApplySkinButton_Click" Tag="{x:Bind EntityId}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

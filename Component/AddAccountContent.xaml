@@ -53,6 +53,7 @@
             <!-- Netease Tab -->
             <PivotItem Header="网易邮箱">
                 <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <TextBlock Text="警告：已不支持网易登录！" Foreground="Red" TextWrapping="Wrap"/>
                     <TextBox x:Name="NeteaseEmail" Header="邮箱" PlaceholderText="填写邮箱"/>
                     <PasswordBox x:Name="NeteasePassword" Header="密码" PlaceholderText="填写密码"/>
                 </StackPanel>

@@ -47,13 +47,6 @@ namespace OpenNEL_WinUI
             return d;
         }
 
-        void ShowInfo(string msg, InfoBarSeverity sev)
-        {
-            InfoBar.Message = msg;
-            InfoBar.Severity = sev;
-            InfoBar.IsOpen = true;
-        }
-
         private async void AddAccountButton_Click(object sender, RoutedEventArgs e)
         {
             await ShowAddAccountDialogAsync();
@@ -67,6 +60,11 @@ namespace OpenNEL_WinUI
             {
                 try { dialog.Hide(); } catch { }
                 RefreshAccounts();
+            };
+            dialogContent.CaptchaRequired += async (sid, url, acc, pwd) =>
+            {
+                try { dialog.Hide(); } catch { }
+                await ShowCaptchaDialogFor4399Async(dialogContent, acc, pwd, sid, url, dialog);
             };
             dialog.PrimaryButtonClick += async (s, e) =>
             {
@@ -95,7 +93,7 @@ namespace OpenNEL_WinUI
                     RefreshAccounts();
                     if (succ)
                     {
-                        ShowInfo("账号添加成功", InfoBarSeverity.Success);
+                        NotificationHost.ShowGlobal("账号添加成功", ToastLevel.Success);
                         dialog.Hide();
                     }
                 }
@@ -105,7 +103,7 @@ namespace OpenNEL_WinUI
                     RefreshAccounts();
                     if (result.succ && !result.parentHidden)
                     {
-                        ShowInfo("账号添加成功", InfoBarSeverity.Success);
+                        NotificationHost.ShowGlobal("账号添加成功", ToastLevel.Success);
                         dialog.Hide();
                     }
                 }
@@ -115,7 +113,7 @@ namespace OpenNEL_WinUI
                     RefreshAccounts();
                     if (succ)
                     {
-                        ShowInfo("账号添加成功", InfoBarSeverity.Success);
+                        NotificationHost.ShowGlobal("账号添加成功", ToastLevel.Success);
                         dialog.Hide();
                     }
                 }
@@ -141,26 +139,27 @@ namespace OpenNEL_WinUI
             var sidExisting = dialogContent.Pc4399SessionId;
             if (!string.IsNullOrWhiteSpace(sidExisting))
             {
-                DispatcherQueue.TryEnqueue(() => ShowInfo("需要输入验证码", InfoBarSeverity.Warning));
-                var succ2 = await ShowCaptchaDialogFor4399Async(dialogContent, acc, pwd, sidExisting, dialogContent.Pc4399CaptchaUrl, dialog);
-                return (succ2, succ2);
+                NotificationHost.ShowGlobal("需要输入验证码", ToastLevel.Warning);
+                try { dialog.Hide(); } catch { }
+                var succ0 = await ShowCaptchaDialogFor4399Async(dialogContent, acc, pwd, sidExisting, dialogContent.Pc4399CaptchaUrl, dialog);
+                return (succ0, true);
             }
             object r = await Task.Run(() => new Login4399().Execute(acc, pwd));
             var tProp = r.GetType().GetProperty("type");
             var tVal = tProp != null ? tProp.GetValue(r) as string : null;
-            if (tVal == "captcha_required")
+            if (string.Equals(tVal, "login_error", StringComparison.OrdinalIgnoreCase) || string.Equals(tVal, "login_4399_error", StringComparison.OrdinalIgnoreCase))
             {
-                var accProp = r.GetType().GetProperty("account");
-                var pwdProp = r.GetType().GetProperty("password");
-                var sidProp = r.GetType().GetProperty("sessionId");
-                var urlProp = r.GetType().GetProperty("captchaUrl");
-                var accVal = accProp?.GetValue(r) as string ?? string.Empty;
-                var pwdVal = pwdProp?.GetValue(r) as string ?? string.Empty;
-                var sidVal = sidProp?.GetValue(r) as string ?? string.Empty;
-                var urlVal = urlProp?.GetValue(r) as string ?? string.Empty;
-                DispatcherQueue.TryEnqueue(() => ShowInfo("需要输入验证码", InfoBarSeverity.Warning));
-                var succ2 = await ShowCaptchaDialogFor4399Async(dialogContent, accVal, pwdVal, sidVal, urlVal, dialog);
-                return (succ2, succ2);
+                var mProp = r.GetType().GetProperty("message");
+                var mVal = mProp?.GetValue(r) as string ?? string.Empty;
+                var lower = mVal.Trim().ToLowerInvariant();
+                if (lower.Contains("captcha required") || lower.Contains("captcha") || lower.Contains("验证码"))
+                {
+                    var sidVal = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    var urlVal = "https://ptlogin.4399.com/ptlogin/captcha.do?captchaId=" + sidVal;
+                    NotificationHost.ShowGlobal("需要输入验证码", ToastLevel.Warning);try { dialog.Hide(); } catch { }
+                    var succE = await ShowCaptchaDialogFor4399Async(dialogContent, acc, pwd, sidVal, urlVal, dialog);
+                    return (succE, true);
+                }
             }
             var succ = dialogContent.TryDetectSuccess(r);
             return (succ, false);
@@ -183,10 +182,10 @@ namespace OpenNEL_WinUI
                     var succ2 = dialogContent.TryDetectSuccess(r2);
                     if (succ2)
                     {
-                        ShowInfo("账号添加成功", InfoBarSeverity.Success);
+                        NotificationHost.ShowGlobal("账号添加成功", ToastLevel.Success);
                         success = true;
-                        dlg2.Hide();
-                        parentDialog.Hide();
+                        try { dlg2.Hide(); } catch { }
+                        try { parentDialog.Hide(); } catch { }
                     }
                 }
                 catch (Exception ex)

@@ -24,6 +24,7 @@ namespace OpenNEL_WinUI
             if (bd == "acrylic") BackdropRadios.SelectedIndex = 1;
             else BackdropRadios.SelectedIndex = 0;
             AutoCopyIpSwitch.IsOn = s?.AutoCopyIpOnStart ?? false;
+            DebugSwitch.IsOn = s?.Debug ?? false;
             _initing = false;
         }
 
@@ -56,6 +57,15 @@ namespace OpenNEL_WinUI
             var data = SettingManager.Instance.Get();
             data.AutoCopyIpOnStart = AutoCopyIpSwitch.IsOn;
             SettingManager.Instance.Update(data);
+        }
+
+        private void DebugSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_initing) return;
+            var data = SettingManager.Instance.Get();
+            data.Debug = DebugSwitch.IsOn;
+            SettingManager.Instance.Update(data);
+            AppState.Debug = DebugSwitch.IsOn;
         }
     }
 }

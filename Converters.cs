@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using System;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace OpenNEL_WinUI
 {
@@ -81,6 +82,28 @@ namespace OpenNEL_WinUI
                 return b ? Visibility.Collapsed : Visibility.Visible;
             }
             return Visibility.Visible;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class StringToImageSourceConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            try
+            {
+                var s = value as string;
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    return new BitmapImage(new Uri(s));
+                }
+            }
+            catch { }
+            return new BitmapImage(new Uri("ms-appx:///Assets/OpenNEL.png"));
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

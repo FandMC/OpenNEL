@@ -8,7 +8,8 @@
     mc:Ignorable="d">
 
     <Grid>
-        <StackPanel Grid.Row="1" Padding="24" Spacing="16" MaxWidth="600">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Padding="24" Spacing="16" MaxWidth="600" HorizontalAlignment="Center">
             <TextBlock Text="外观" Style="{StaticResource TitleTextBlockStyle}"/>
             <Grid Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="16">
                 <StackPanel Spacing="8">
@@ -35,8 +36,10 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="功能" Style="{StaticResource SubtitleTextBlockStyle}"/>
                     <ToggleSwitch x:Name="AutoCopyIpSwitch" Toggled="AutoCopyIpSwitch_Toggled" OnContent="开" OffContent="关" Header="启动成功后自动复制连接IP"/>
+                    <ToggleSwitch x:Name="DebugSwitch" Toggled="DebugSwitch_Toggled" OnContent="开" OffContent="关" Header="调试模式"/>
                 </StackPanel>
             </Grid>
         </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

@@ -55,9 +55,13 @@
                 </Grid.RowDefinitions>
                 <TextBlock Text="应用日志" Style="{StaticResource TitleTextBlockStyle}" FontSize="28"/>
                 <Grid Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" Padding="0">
-                    <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                        <ListView x:Name="LogList"/>
-                    </ScrollViewer>
+                    <ListView x:Name="LogList"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollMode="Enabled"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollMode="Enabled"
+                              ScrollViewer.IsVerticalScrollChainingEnabled="False"
+                              ScrollViewer.IsHorizontalScrollChainingEnabled="False"/>
                 </Grid>
             </Grid>
         </Grid>

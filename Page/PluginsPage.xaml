@@ -74,7 +74,7 @@
                                     <Button Content="卸载" 
                                             Click="UninstallPluginButton_Click" 
                                             Tag="{x:Bind}"
-                                            Background="#ff623a9a" 
+                                            Background="Red" 
                                             Foreground="White"/>
                                 </StackPanel>
                             </Grid>

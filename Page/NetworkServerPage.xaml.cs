@@ -19,6 +19,9 @@ namespace OpenNEL_WinUI
         private bool _notLogin;
         public bool NotLogin { get => _notLogin; private set { _notLogin = value; OnPropertyChanged(nameof(NotLogin)); } }
         private System.Threading.CancellationTokenSource _cts;
+        private int _page = 1;
+        private const int PageSize = 20;
+        private bool _hasMore;
 
         public NetworkServerPage()
         {
@@ -43,18 +46,21 @@ namespace OpenNEL_WinUI
             {
                 r = await RunOnStaAsync(() =>
                 {
-                    if (token.IsCancellationRequested) return new { type = "servers", items = System.Array.Empty<object>() };
+                    if (token.IsCancellationRequested) return new { type = "servers", items = System.Array.Empty<object>(), hasMore = false };
+                    var offset = (_page - 1) * PageSize;
                     if (string.IsNullOrWhiteSpace(keyword))
                     {
-                        return new ListServers().Execute();
+                        return new ListServers().Execute(offset, PageSize);
                     }
-                    return new SearchServers().Execute(keyword);
+                    return new SearchServers().Execute(keyword, offset, PageSize);
                 });
             }
             catch (System.Exception)
             {
                 NotLogin = false;
                 Servers.Clear();
+                _page = 1;
+                UpdatePageView();
                 return;
             }
             var tProp = r.GetType().GetProperty("type");
@@ -63,12 +69,17 @@ namespace OpenNEL_WinUI
             {
                 NotLogin = true;
                 Servers.Clear();
+                _page = 1;
+                _hasMore = false;
+                UpdatePageView();
                 return;
             }
             NotLogin = false;
             Servers.Clear();
             var itemsProp = r.GetType().GetProperty("items");
             var items = itemsProp?.GetValue(r) as System.Collections.IEnumerable;
+            var hmProp = r.GetType().GetProperty("hasMore");
+            _hasMore = hmProp != null && (bool)(hmProp.GetValue(r) ?? false);
             if (items != null)
             {
                 foreach (var item in items)
@@ -80,6 +91,7 @@ namespace OpenNEL_WinUI
                     Servers.Add(new ServerItem { EntityId = id, Name = name });
                 }
             }
+            UpdatePageView();
         }
 
         private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -315,6 +327,31 @@ namespace OpenNEL_WinUI
             if (width <= 0) return;
             var itemWidth = Math.Max(240, (width - 24) / 4);
             panel.ItemWidth = itemWidth;
+        }
+
+        private void UpdatePageView()
+        {
+            try
+            {
+                if (PageInfoText != null) PageInfoText.Text = "第 " + _page + " 页";
+                if (PrevPageButton != null) PrevPageButton.IsEnabled = _page > 1;
+                if (NextPageButton != null) NextPageButton.IsEnabled = _hasMore;
+            }
+            catch { }
+        }
+
+        private void PrevPageButton_Click(object sender, RoutedEventArgs e)
+        {
+            _page--;
+            var q = (SearchBox?.Text ?? string.Empty);
+            _ = RefreshServers(q);
+        }
+
+        private void NextPageButton_Click(object sender, RoutedEventArgs e)
+        {
+            _page++;
+            var q = (SearchBox?.Text ?? string.Empty);
+            _ = RefreshServers(q);
         }
 
         private static Task<object> RunOnStaAsync(System.Func<object> func)

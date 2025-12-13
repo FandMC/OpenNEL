@@ -1,4 +1,4 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Codexus.OpenSDK;
@@ -29,5 +29,13 @@ public static class X19Extensions
         var json = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<TResult>(json);
         return result!;
+    }
+
+    public static async Task<string> ApiRaw(this X19AuthenticationOtp otp, string url, string body)
+    {
+        var response = await otp.Api(url, body);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        return json;
     }
 }

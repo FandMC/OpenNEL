@@ -1,4 +1,5 @@
 ﻿using System;
+using OpenNEL.Manager;
 
 namespace OpenNEL.Utils;
 
@@ -8,12 +9,8 @@ public class Debug
     {
         try
         {
-            var args = Environment.GetCommandLineArgs();
-            foreach (var a in args)
-            {
-                if (string.Equals(a, "--debug", StringComparison.OrdinalIgnoreCase)) 
-                    return true;
-            }
+            var s = SettingManager.Instance.Get();
+            return s?.Debug ?? false;
         }
         catch{}
         return false;

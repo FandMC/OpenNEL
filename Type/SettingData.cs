@@ -10,4 +10,5 @@ public class SettingData
     [JsonPropertyName("backdrop")] public string Backdrop { get; set; } = "mica";
     [JsonPropertyName("vetaProcessKeyword")] public string VetaProcessKeyword { get; set; } = "Veta";
     [JsonPropertyName("autoCopyIpOnStart")] public bool AutoCopyIpOnStart { get; set; } = false;
+    [JsonPropertyName("debug")] public bool Debug { get; set; } = false;
 }

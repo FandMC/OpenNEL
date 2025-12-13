@@ -10,18 +10,18 @@ namespace OpenNEL_WinUI.Handlers.Game;
 
 public class ListServers
 {
-    public object Execute()
+    public object Execute(int offset, int pageSize)
     {
         var last = UserManager.Instance.GetLastAvailableUser();
         if (last == null) return new { type = "notlogin" };
         try
         {
-            const int pageSize = 15;
-            var offset = 0;
             var servers = AppState.X19.GetAvailableNetGames(last.UserId, last.AccessToken, offset, pageSize);
             if(AppState.Debug) Log.Information("服务器列表: 数量={Count}", servers.Data?.Length ?? 0);
-            var items = servers.Data.Select(s => new { entityId = s.EntityId, name = s.Name }).ToArray();
-            return new { type = "servers", items };
+            var data = servers.Data ?? System.Array.Empty<EntityNetGameItem>();
+            var items = data.Select(s => new { entityId = s.EntityId, name = s.Name }).ToArray();
+            var hasMore = data.Length >= pageSize;
+            return new { type = "servers", items, hasMore };
         }
         catch (System.Exception ex)
         {

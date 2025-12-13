@@ -9,11 +9,12 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace OpenNEL_WinUI
 {
-    public sealed partial class AddAccountContent : UserControl
-    {
-        public event Action AutoLoginSucceeded;
-        public event Action ConfirmRequested;
-        public event Action CancelRequested;
+        public sealed partial class AddAccountContent : UserControl
+        {
+            public event Action AutoLoginSucceeded;
+            public event Action ConfirmRequested;
+            public event Action CancelRequested;
+            public event Action<string,string,string,string> CaptchaRequired;
         private string _pc4399SessionId;
         public AddAccountContent()
         {
@@ -169,6 +170,7 @@ namespace OpenNEL_WinUI
                     var pwdVal = pwdProp?.GetValue(result) as string ?? string.Empty;
                     SetCaptchaFor4399(sidVal, urlVal, accVal, pwdVal);
                     NotificationHost.ShowGlobal("需要输入验证码", ToastLevel.Warning);
+                    try { DispatcherQueue.TryEnqueue(() => CaptchaRequired?.Invoke(sidVal, urlVal, accVal, pwdVal)); } catch { }
                     return false;
                 }
             }

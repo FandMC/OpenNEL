@@ -17,6 +17,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0" Margin="0,0,0,12">
@@ -69,5 +70,19 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
+
+        <Grid Grid.Row="2" Visibility="{Binding NotLogin, Converter={StaticResource BoolNegationConverter}}" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button x:Name="PrevPageButton" Content="上一页" Click="PrevPageButton_Click"/>
+                <Button x:Name="NextPageButton" Content="下一页" Click="NextPageButton_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="PageInfoText" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center"/>
+        </Grid>
     </Grid>
 </Page>
