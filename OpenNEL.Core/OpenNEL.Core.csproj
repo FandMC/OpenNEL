@@ -7,4 +7,10 @@
         <RootNamespace>OpenNEL.Core</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Serilog" Version="4.2.0" />
+        <PackageReference Include="SharpCompress" Version="0.38.0" />
+        <PackageReference Include="System.Management" Version="9.0.0" />
+    </ItemGroup>
+
 </Project>

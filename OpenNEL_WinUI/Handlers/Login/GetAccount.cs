@@ -43,9 +43,6 @@ public class GetAccount
         }).ToList();
     }
 
-    /// <summary>
-    /// 获取账户列表项数组（用于返回给前端）
-    /// </summary>
     public static object[] GetAccountItems()
     {
         var users = UserManager.Instance.GetUsersNoDetails();

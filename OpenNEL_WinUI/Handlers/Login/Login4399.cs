@@ -35,7 +35,7 @@ namespace OpenNEL_WinUI.Handlers.Login
             {
                 AppState.Services!.X19.InitializeDeviceAsync().GetAwaiter().GetResult();
                 var c4399 = new Codexus.OpenSDK.C4399();
-                string cookieJson = (!string.IsNullOrWhiteSpace(sessionId) && !string.IsNullOrWhiteSpace(captcha))
+                string cookieJson = !string.IsNullOrWhiteSpace(sessionId) && !string.IsNullOrWhiteSpace(captcha)
                     ? c4399.LoginWithPasswordAsync(account, password, sessionId, captcha).GetAwaiter().GetResult()
                     : c4399.LoginWithPasswordAsync(account, password).GetAwaiter().GetResult();
                 if (AppState.Debug) Log.Information("4399 Login cookieJson length: {Length}", cookieJson.Length);

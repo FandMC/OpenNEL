@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using OpenNEL.Core.Utils;
 using OpenNEL.GameLauncher.Utils;
 
 namespace OpenNEL.GameLauncher.Services.Bedrock;

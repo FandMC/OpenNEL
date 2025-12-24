@@ -16,10 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
-using System.Linq;
 using System.Text.Json;
-using OpenNEL_WinUI.Entities.Web;
 using OpenNEL_WinUI.Manager;
+using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Login
 {
@@ -29,12 +28,36 @@ namespace OpenNEL_WinUI.Handlers.Login
         {
             if (string.IsNullOrWhiteSpace(id)) return new { type = "activate_account_error", message = "缺少id" };
             var u = UserManager.Instance.GetUserByEntityId(id!);
-            if (u == null) return new { type = "activate_account_error", message = "账号不存在" };
+            if (u == null)
+            {
+                return new { type = "activate_account_error", message = "账号不存在" };
+            }
             try
             {
                 if (!u.Authorized)
                 {
-                    LoginHandler.LoginWithChannelAndType(u.Channel, u.Type, u.Details, u.Platform, string.Empty);
+                    var req = JsonSerializer.Deserialize<Entities.Web.NEL.EntityPasswordRequest>(u.Details);
+                    if (req == null)
+                    {
+                        throw new Exception("无法解析登录信息");
+                    }
+                    var result = new Login4399().Execute(req.Account, req.Password);
+                    var tProp = result?.GetType().GetProperty("type");
+                    var tVal = tProp?.GetValue(result) as string;
+                    if (tVal == "captcha_required")
+                    {
+                        Log.Information("[ActivateAccount] 需要验证码");
+                        return result;
+                    }
+                    if (tVal == "login_4399_error")
+                    {
+                        var mProp = result?.GetType().GetProperty("message");
+                        var msg = mProp?.GetValue(result) as string ?? "登录失败";
+                        Log.Error("[ActivateAccount] 登录失败: {Msg}", msg);
+                        return result;
+                    }
+                    u.Authorized = true;
+                    UserManager.Instance.MarkDirtyAndScheduleSave();
                 }
                 var list = new System.Collections.ArrayList();
                 var items = GetAccount.GetAccountItems();

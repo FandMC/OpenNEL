@@ -1,7 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using OpenNEL.Core.Utils;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.GameLauncher.Utils.Progress;
+using OpenNEL.Core.Progress;
 using OpenNEL.WPFLauncher;
 using OpenNEL.WPFLauncher.Entities;
 using OpenNEL.WPFLauncher.Entities.Minecraft;

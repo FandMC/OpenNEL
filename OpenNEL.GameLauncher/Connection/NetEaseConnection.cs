@@ -6,6 +6,7 @@ using OpenNEL.GameLauncher.Connection.ChaCha;
 using OpenNEL.GameLauncher.Connection.Entities;
 using OpenNEL.GameLauncher.Connection.Extensions;
 using OpenNEL.SDK.Utils;
+using CoreExt = OpenNEL.Core.Extensions.ByteArrayExtensions;
 using Serilog;
 
 namespace OpenNEL.GameLauncher.Connection;
@@ -73,9 +74,9 @@ public static class NetEaseConnection
             }
             Log.Information("Establishing successfully");
             
-            byte[] tokenXored = Encoding.ASCII.GetBytes(userToken).Xor(TokenKey);
-            ChaChaOfSalsa encryptCipher = new ChaChaOfSalsa(tokenXored.CombineWith(remoteKey), ChaChaNonce, encryption: true);
-            ChaChaOfSalsa decryptCipher = new ChaChaOfSalsa(remoteKey.CombineWith(tokenXored), ChaChaNonce, encryption: false);
+            byte[] tokenXored = CoreExt.Xor(Encoding.ASCII.GetBytes(userToken), TokenKey);
+            ChaChaOfSalsa encryptCipher = new ChaChaOfSalsa(CoreExt.CombineWith(tokenXored, remoteKey), ChaChaNonce, encryption: true);
+            ChaChaOfSalsa decryptCipher = new ChaChaOfSalsa(CoreExt.CombineWith(remoteKey, tokenXored), ChaChaNonce, encryption: false);
             
             byte[] joinMsg = buildJoinServerMessage(nexusToken, encryptCipher, serverId, long.Parse(gameId), gameVersion, modInfo, "netease", userId, remoteKey);
             await stream.WriteAsync(joinMsg);

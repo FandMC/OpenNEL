@@ -61,7 +61,7 @@
     <Configuration Solution="Release|x64" Project="Release|Any CPU" />
     <Configuration Solution="Release|x86" Project="Release|Any CPU" />
   </Project>
-  <Project Path="OpenNEL.Common\OpenNEL.Common.csproj" Type="Classic C#">
+  <Project Path="OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" Type="Classic C#">
     <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
@@ -70,6 +70,14 @@
     <Configuration Solution="Release|x86" Project="Release|Any CPU" />
   </Project>
   <Project Path="OpenNEL.SDK\OpenNEL.SDK.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
+    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
+    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
+  </Project>
+  <Project Path="OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" Type="Classic C#">
     <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />

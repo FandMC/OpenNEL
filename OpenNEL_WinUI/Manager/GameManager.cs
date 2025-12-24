@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using OpenNEL.SDK.RakNet;
-using OpenNEL.Common.Interceptors;
+using OpenNEL.Interceptors;
 using OpenNEL.GameLauncher.Services.Java;
 using OpenNEL.GameLauncher.Services.Bedrock;
 using OpenNEL_WinUI.Entities.Web.NEL;

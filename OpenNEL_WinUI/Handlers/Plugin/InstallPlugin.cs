@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Text.Json;
-using OpenNEL.SDK.Manager;
+using OpenNEL.PluginLoader.Manager;
 using OpenNEL_WinUI.type;
 using Serilog;
 using System.Net.Http;

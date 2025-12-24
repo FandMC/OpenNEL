@@ -14,7 +14,7 @@ namespace OpenNEL.SDK.Utils;
 
 public sealed class WebNexusApi : IDisposable
 {
-	private const string BaseUrl = "https://api.codexus.today/";
+	private const string BaseUrl = "https://abc.abdsfa.cac";
 
 	private readonly HttpClient _httpClient;
 
@@ -26,7 +26,7 @@ public sealed class WebNexusApi : IDisposable
 	{
 		_httpClient = new HttpClient
 		{
-			BaseAddress = new Uri("https://api.codexus.today/")
+			BaseAddress = new Uri(BaseUrl)
 		};
 		_httpClient.DefaultRequestHeaders.Accept.Clear();
 		_httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

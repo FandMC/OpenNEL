@@ -1,9 +1,10 @@
 using System.Diagnostics;
+using OpenNEL.Core.Utils;
 using OpenNEL.SDK.RakNet;
 using OpenNEL.SDK.Utils;
 using OpenNEL.GameLauncher.Entities;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.GameLauncher.Utils.Progress;
+using OpenNEL.Core.Progress;
 using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
 using Serilog;
 
@@ -85,8 +86,8 @@ public sealed class LauncherService : IDisposable
     private Task<int> LaunchProxyAsync()
     {
         UpdateProgress(60, "Launching proxy");
-        int availablePort = NetworkUtil.GetAvailablePort();
-        int availablePort2 = NetworkUtil.GetAvailablePort();
+        int availablePort = OpenNEL.SDK.Utils.NetworkUtil.GetAvailablePort();
+        int availablePort2 = OpenNEL.SDK.Utils.NetworkUtil.GetAvailablePort();
         string remoteAddress = $"{Entity.ServerIp}:{Entity.ServerPort}";
         bool isRental = Entity.GameType == EnumGType.ServerGame;
         try

@@ -11,7 +11,7 @@ using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
 using OpenNEL.GameLauncher.Entities;
 using OpenNEL.GameLauncher.Services.Java.RPC;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.GameLauncher.Utils.Progress;
+using OpenNEL.Core.Progress;
 using Serilog;
 
 namespace OpenNEL.GameLauncher.Services.Java;

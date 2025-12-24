@@ -1,5 +1,6 @@
+using OpenNEL.Core.Utils;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.GameLauncher.Utils.Progress;
+using OpenNEL.Core.Progress;
 using Serilog;
 
 namespace OpenNEL.GameLauncher.Services.Java;

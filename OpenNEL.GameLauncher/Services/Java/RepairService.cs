@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenNEL.Core.Utils;
 using OpenNEL.GameLauncher.Utils;
 
 namespace OpenNEL.GameLauncher.Services.Java;

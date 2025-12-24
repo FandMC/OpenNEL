@@ -225,15 +225,24 @@ namespace OpenNEL_WinUI
 
         private void RefreshAccounts()
         {
-            Accounts.Clear();
-            foreach (var item in GetAccount.GetAccountList().OrderBy(x => x.EntityId))
+            try
             {
-                Accounts.Add(new AccountModel
+                var newItems = GetAccount.GetAccountList().OrderBy(x => x.EntityId).ToList();
+                Accounts.Clear();
+                foreach (var item in newItems)
                 {
-                    EntityId = item.EntityId,
-                    Channel = item.Channel,
-                    Status = item.Status
-                });
+                    Accounts.Add(new AccountModel
+                    {
+                        EntityId = item.EntityId,
+                        Channel = item.Channel,
+                        Status = item.Status,
+                        Alias = item.Alias
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "刷新账号列表失败");
             }
         }
 

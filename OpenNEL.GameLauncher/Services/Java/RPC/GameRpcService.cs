@@ -1,13 +1,14 @@
 using System.Net;
 using System.Net.Sockets;
 using OpenNEL.Core.Cipher;
+using OpenNEL.Core.Utils;
 using OpenNEL.WPFLauncher.Entities;
 using OpenNEL.WPFLauncher.Entities.NetGame;
 using OpenNEL.WPFLauncher.Entities.NetGame.Skin;
 using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
 using OpenNEL.WPFLauncher.Entities.RPC;
 using OpenNEL.WPFLauncher.Entities.Texture;
-using OpenNEL.GameLauncher.Managers;
+using OpenNEL.Core.Threading;
 using OpenNEL.GameLauncher.Services.Java.RPC.Events;
 using OpenNEL.GameLauncher.Utils;
 using OpenNEL.SDK.Entities;

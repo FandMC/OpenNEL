@@ -59,12 +59,13 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
+    <ProjectReference Include="..\OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" />
     <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
     <ProjectReference Include="..\OpenNEL.Com4399\OpenNEL.Com4399.csproj" />
     <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
     <ProjectReference Include="..\OpenNEL.G79\OpenNEL.G79.csproj" />
     <ProjectReference Include="..\OpenNEL.Pc4399\OpenNEL.Pc4399.csproj" />
-    <ProjectReference Include="..\OpenNEL.Common\OpenNEL.Common.csproj" />
+    <ProjectReference Include="..\OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" />
     <ProjectReference Include="..\OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" />
     <ProjectReference Include="..\OpenNEL.SDK\OpenNEL.SDK.csproj" />
   </ItemGroup>

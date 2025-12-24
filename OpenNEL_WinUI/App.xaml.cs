@@ -21,8 +21,9 @@ using Microsoft.UI.Xaml;
 using Serilog;
 using System.Threading.Tasks;
 using OpenNEL.SDK.Manager;
+using OpenNEL.PluginLoader.Manager;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.Common.Interceptors;
+using OpenNEL.Interceptors;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.Manager;
@@ -111,6 +112,7 @@ namespace OpenNEL_WinUI
                 try
                 {
                     PluginManager.Instance.EnsureUninstall();
+                    PluginManager.Instance.OnAssemblyLoaded = assembly => PacketManager.Instance.RegisterPacketFromAssembly(assembly);
                     PluginManager.Instance.LoadPlugins(pluginDir);
                 }
                 catch (Exception ex)
