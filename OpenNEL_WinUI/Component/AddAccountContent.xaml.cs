@@ -156,8 +156,7 @@ namespace OpenNEL_WinUI
                     if (string.Equals(v, "Success_login", StringComparison.OrdinalIgnoreCase)) return true;
                 }
             }
-            var users = UserManager.Instance.GetUsersNoDetails();
-            if (users.Any(u => u.Authorized)) return true;
+            if (GetAccount.HasAuthorizedUser()) return true;
             return false;
         }
     }

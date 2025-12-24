@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>OpenNEL.Pc4399</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
+    <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
+    <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
+  </ItemGroup>
+</Project>

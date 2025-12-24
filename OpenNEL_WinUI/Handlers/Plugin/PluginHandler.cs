@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Codexus.Development.SDK.Manager;
+using OpenNEL.SDK.Manager;
 using OpenNEL_WinUI.Utils;
 
 namespace OpenNEL_WinUI.Handlers.Plugin

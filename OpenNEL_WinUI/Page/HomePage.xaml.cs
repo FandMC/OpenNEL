@@ -226,14 +226,13 @@ namespace OpenNEL_WinUI
         private void RefreshAccounts()
         {
             Accounts.Clear();
-            var users = UserManager.Instance.GetUsersNoDetails();
-            foreach (var u in users.OrderBy(x => x.UserId))
+            foreach (var item in GetAccount.GetAccountList().OrderBy(x => x.EntityId))
             {
                 Accounts.Add(new AccountModel
                 {
-                    EntityId = u.UserId,
-                    Channel = u.Channel,
-                    Status = u.Authorized ? "online" : "offline"
+                    EntityId = item.EntityId,
+                    Channel = item.Channel,
+                    Status = item.Status
                 });
             }
         }

@@ -15,11 +15,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-using Codexus.Cipher.Entities.Pc4399;
-using Codexus.Cipher.Utils;
-using Codexus.Cipher.Utils.Exception;
-using Codexus.Cipher.Utils.Http;
-using Codexus.Development.SDK.Entities;
+using OpenNEL.Pc4399.Entities;
+using OpenNEL.Core.Utils;
+using OpenNEL.MPay.Exceptions;
+using OpenNEL.Core.Http;
+using OpenNEL.SDK.Entities;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -46,7 +46,7 @@ public class Channel4399Register : IDisposable
     Func<string, Task<string>> inputCaptchaAsync,
     Func<IdCard> idCardFunc)
   {
-    string account = "opnel" + RandomUtil.GetRandomString(7);
+    string account = "OpenNEL" + RandomUtil.GetRandomString(4);
     string password = RandomUtil.GetRandomString(8);
     string captchaId = RandomUtil.GenerateSessionId();
     string captcha = await inputCaptchaAsync("https://ptlogin.4399.com/ptlogin/captcha.do?captchaId=" + captchaId);
@@ -60,9 +60,6 @@ public class Channel4399Register : IDisposable
       Account = account,
       Password = password
     };
-    account = (string) null;
-    password = (string) null;
-    captchaId = (string) null;
     return entity4399Account;
   }
 

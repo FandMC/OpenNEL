@@ -45,31 +45,28 @@
         <PackageReference Include="Selenium.WebDriver" Version="4.38.0"/>
         <PackageReference Include="Selenium.Support" Version="4.38.0"/>
         <PackageReference Include="WebDriverManager" Version="2.17.6"/>
+        <PackageReference Include="Downloader" Version="3.2.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8"/>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
     <Compile Remove="plugins\**" />
   </ItemGroup>
-<ItemGroup>
-        <Reference Include="Codexus.Cipher">
-            <HintPath>..\SDK\Codexus.Cipher.dll</HintPath>
-        </Reference>
-        <Reference Include="Codexus.Development.SDK">
-            <HintPath>..\SDK\Codexus.Development.SDK.dll</HintPath>
-        </Reference>
-        <Reference Include="Codexus.Game.Launcher">
-            <HintPath>..\SDK\Codexus.Game.Launcher.dll</HintPath>
-        </Reference>
-        <Reference Include="Codexus.Interceptors">
-            <HintPath>..\SDK\Codexus.Interceptors.dll</HintPath>
-        </Reference>
-        <Reference Include="Codexus.OpenSDK">
-            <HintPath>..\SDK\Codexus.OpenSDK.dll</HintPath>
-        </Reference>
-        <Reference Include="Downloader">
-            <HintPath>..\SDK\Downloader.dll</HintPath>
-        </Reference>
+  <ItemGroup>
+    <Reference Include="Codexus.OpenSDK">
+        <HintPath>..\SDK\Codexus.OpenSDK.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
+    <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
+    <ProjectReference Include="..\OpenNEL.Com4399\OpenNEL.Com4399.csproj" />
+    <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
+    <ProjectReference Include="..\OpenNEL.G79\OpenNEL.G79.csproj" />
+    <ProjectReference Include="..\OpenNEL.Pc4399\OpenNEL.Pc4399.csproj" />
+    <ProjectReference Include="..\OpenNEL.Common\OpenNEL.Common.csproj" />
+    <ProjectReference Include="..\OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" />
+    <ProjectReference Include="..\OpenNEL.SDK\OpenNEL.SDK.csproj" />
   </ItemGroup>
   <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging

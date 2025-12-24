@@ -26,8 +26,7 @@ using System.ComponentModel;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Entities.Web.NetGame;
 using Windows.ApplicationModel.DataTransfer;
-using System.Text.Json;
-using Codexus.Development.SDK.Entities;
+using OpenNEL.SDK.Entities;
 
 namespace OpenNEL_WinUI
 {

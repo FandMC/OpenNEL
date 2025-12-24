@@ -6,7 +6,7 @@ OpenNEL
 [![QQ](https://img.shields.io/badge/QQ_Unofficial_2-578806788-blue)](https://qm.qq.com/q/FDfBhpg7yW)
 [![QQ](https://img.shields.io/badge/QQ_Unofficial_3-824115841-blue)](https://qm.qq.com/q/h05MMBtaX8)
 
-## 本项目基于基于 [Codexus.OpenSDK](https://github.com/corpnetease/Codexus.OpenSDK) 以及 Codexus.Development.SDK 制作的第三方启动器
+## 本项目基于基于 [Codexus.OpenSDK](https://github.com/corpnetease/Codexus.OpenSDK) 以及 OpenNEL.SDK 制作的第三方启动器
 ### 安装要求
 - .net 9.0
 

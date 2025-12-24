@@ -22,7 +22,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Codexus.Development.SDK.Manager;
 using OpenNEL_WinUI.type;
 using Serilog;
 

@@ -24,7 +24,7 @@ using System.IO;
 using Serilog;
 using System.Diagnostics;
 using OpenNEL_WinUI.Utils;
-using Codexus.Development.SDK.Manager;
+using OpenNEL.SDK.Manager;
 
 namespace OpenNEL_WinUI
 {

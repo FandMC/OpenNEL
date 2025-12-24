@@ -71,7 +71,7 @@ internal static class KillVeta
         return (true, true, dllPath);
     }
 
-    const int PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    const int ProcessQueryLimitedInformation = 0x1000;
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -84,7 +84,7 @@ internal static class KillVeta
         IntPtr h = IntPtr.Zero;
         try
         {
-            h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, p.Id);
+            h = OpenProcess(ProcessQueryLimitedInformation, false, p.Id);
             if (h == IntPtr.Zero) return null;
             var sb = new StringBuilder(1024);
             int size = sb.Capacity;

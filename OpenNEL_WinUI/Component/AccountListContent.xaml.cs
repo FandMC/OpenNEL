@@ -71,15 +71,14 @@ namespace OpenNEL_WinUI
         {
             if (Accounts == null) return;
             Accounts.Clear();
-            var users = UserManager.Instance.GetUsersNoDetails();
-            foreach (var u in users.OrderBy(x => x.UserId))
+            foreach (var item in GetAccount.GetAccountList().OrderBy(x => x.EntityId))
             {
                 Accounts.Add(new AccountModel
                 {
-                    EntityId = u.UserId,
-                    Channel = u.Channel,
-                    Status = u.Authorized ? "online" : "offline",
-                    Alias = u.Alias
+                    EntityId = item.EntityId,
+                    Channel = item.Channel,
+                    Status = item.Status,
+                    Alias = item.Alias
                 });
             }
         }
@@ -104,8 +103,7 @@ namespace OpenNEL_WinUI
                     if (string.Equals(v, "Success_login", StringComparison.OrdinalIgnoreCase)) return true;
                 }
             }
-            var users = UserManager.Instance.GetUsersNoDetails();
-            if (users.Any(u => u.Authorized)) return true;
+            if (GetAccount.HasAuthorizedUser()) return true;
             return false;
         }
 
