@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using OpenNEL.SDK.Manager;
 using OpenNEL.PluginLoader.Manager;
 using OpenNEL.GameLauncher.Utils;
+using OpenNEL.Core.Utils;
 using OpenNEL.Interceptors;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Utils;
@@ -60,7 +61,7 @@ namespace OpenNEL_WinUI
                     Log.Information("QQ群: {qqgroup}", AppInfo.QQGroup);
                     AppState.Services = await CreateServicesAsync();
                     await AppState.Services.X19.InitializeDeviceAsync();
-                    await Hwid.ReportAsync();
+                    await OpenNEL_WinUI.Utils.Hwid.ReportAsync();
                     await UpdaterService.UpdateAsync(AppInfo.AppVersion);
 
                     await InitializeSystemComponentsAsync();
@@ -103,7 +104,7 @@ namespace OpenNEL_WinUI
 
         static async Task InitializeSystemComponentsAsync()
         {
-            var pluginDir = FileUtil.GetPluginDirectory();
+            var pluginDir = OpenNEL_WinUI.Utils.FileUtil.GetPluginDirectory();
             Directory.CreateDirectory(pluginDir);
             UserManager.Instance.ReadUsersFromDisk();
             Interceptor.EnsureLoaded();
@@ -129,11 +130,12 @@ namespace OpenNEL_WinUI
         {
             var c4399 = new C4399();
             var x19 = new X19();
+            var crcSalt = await CrcSalt.Compute();
             var yggdrasil = new StandardYggdrasil(new YggdrasilData
             {
                 LauncherVersion = x19.GameVersion,
                 Channel = "netease",
-                CrcSalt = await CrcSalt.Compute()
+                CrcSalt = crcSalt
             });
             return new Services(c4399, x19, yggdrasil);
         }

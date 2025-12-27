@@ -30,7 +30,7 @@ using OpenNEL.GameLauncher.Utils;
 using OpenNEL.Interceptors;
 using Codexus.OpenSDK;
 using OpenNEL_WinUI.Entities.Web.NetGame;
-using OpenNEL_WinUI.Utils;
+using OpenNEL.Core.Utils;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game;

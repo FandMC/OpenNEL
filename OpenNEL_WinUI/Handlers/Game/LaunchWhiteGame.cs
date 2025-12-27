@@ -17,20 +17,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using Codexus.OpenSDK;
 using OpenNEL.GameLauncher.Entities;
 using OpenNEL.GameLauncher.Services.Java;
 using OpenNEL.GameLauncher.Utils;
-using OpenNEL.Interceptors;
-using OpenNEL.SDK.Entities;
 using OpenNEL.WPFLauncher;
 using OpenNEL.WPFLauncher.Entities;
 using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
-using OpenNEL_WinUI.Utils;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game;
@@ -85,59 +81,6 @@ public class LaunchWhiteGame
         ReportProgress(10, "正在安装游戏模组");
         var serverMod = await InstallerService.InstallGameMods(userId, accessToken, gameVersion, wpf, serverId, false);
         var mods = JsonSerializer.Serialize(serverMod);
-        var pair = Md5Mapping.GetMd5FromGameVersion(version.Name);
-
-        ReportProgress(30, "正在创建代理通道");
-        SemaphoreSlim authorizedSignal = new SemaphoreSlim(0);
-        var interceptor = Interceptor.CreateInterceptor(
-            new EntitySocks5(),
-            mods,
-            serverId,
-            serverName,
-            version.Name,
-            address.Data!.Ip,
-            address.Data!.Port,
-            roleId,
-            userId,
-            accessToken,
-            delegate(string certification)
-            {
-                Task.Run(async delegate
-                {
-                    try
-                    {
-                        var latest = UserManager.Instance.GetAvailableUser(userId);
-                        var currentToken = latest?.AccessToken ?? accessToken;
-                        var success = await AppState.Services!.Yggdrasil.JoinServerAsync(new Codexus.OpenSDK.Entities.Yggdrasil.GameProfile
-                        {
-                            GameId = serverId,
-                            GameVersion = version.Name,
-                            BootstrapMd5 = pair.BootstrapMd5,
-                            DatFileMd5 = pair.DatFileMd5,
-                            Mods = JsonSerializer.Deserialize<Codexus.OpenSDK.Entities.Yggdrasil.ModList>(mods)!,
-                            User = new Codexus.OpenSDK.Entities.Yggdrasil.UserProfile { UserId = int.Parse(userId), UserToken = currentToken }
-                        }, certification);
-                        if (success.IsSuccess)
-                        {
-                            Log.Information("白端启动: 服务器认证成功");
-                        }
-                        else
-                        {
-                            Log.Error("白端启动: 服务器认证失败: {Error}", success.Error);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error(e, "白端启动: 认证过程中发生异常");
-                    }
-                    finally
-                    {
-                        authorizedSignal.Release();
-                    }
-                });
-                authorizedSignal.Wait();
-            });
-        GameManager.Instance.AddInterceptor(interceptor);
 
         ReportProgress(50, "正在启动游戏");
         var launchRequest = new EntityLaunchGame
@@ -151,26 +94,20 @@ public class LaunchWhiteGame
             GameVersionId = (int)gameVersion,
             GameVersion = version.Name,
             AccessToken = accessToken,
-            ServerIp = interceptor.LocalAddress,
-            ServerPort = interceptor.LocalPort,
+            ServerIp = address.Data!.Ip,
+            ServerPort = address.Data!.Port,
             MaxGameMemory = 4096,
             LoadCoreMods = true
         };
 
-        // 创建并启动 Launcher
         var launcher = LauncherService.CreateLauncher(launchRequest, accessToken, wpf, wpf.MPay.GameVersion, _progress ?? new Progress<EntityProgressUpdate>());
         GameManager.Instance.AddLauncher(launcher);
-        
-        launcher.Exited += (guid) =>
-        {
-            GameManager.Instance.ShutdownInterceptor(interceptor.Identifier);
-        };
 
         await InterConnClient.GameStart(userId, accessToken, serverId);
         await X19.InterconnectionApi.GameStartAsync(userId, accessToken, serverId);
 
         ReportProgress(100, "启动完成");
-        Log.Information("白端启动成功: ServerId={ServerId}, Role={Role}, LocalAddress={Addr}:{Port}", serverId, roleId, interceptor.LocalAddress, interceptor.LocalPort);
+        Log.Information("白端启动成功: ServerId={ServerId}, Role={Role}, ServerAddress={Addr}:{Port}", serverId, roleId, address.Data!.Ip, address.Data!.Port);
         return true;
     }
 

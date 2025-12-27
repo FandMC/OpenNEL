@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Codexus.OpenSDK\Codexus.OpenSDK.csproj" />
     <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
     <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
   </ItemGroup>

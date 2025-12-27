@@ -3,9 +3,12 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Codexus.OpenSDK.Entities.Yggdrasil;
+using Codexus.OpenSDK.Yggdrasil;
 using OpenNEL.GameLauncher.Connection.ChaCha;
 using OpenNEL.GameLauncher.Connection.Entities;
 using OpenNEL.GameLauncher.Connection.Extensions;
+using OpenNEL.Core.Utils;
 using CoreExt = OpenNEL.Core.Extensions.ByteArrayExtensions;
 using Serilog;
 
@@ -37,12 +40,14 @@ public static class NetEaseConnection
         string userToken, 
         string authAddress, 
         int authPort, 
-        Action handleSuccess, 
-        Func<string, string, int, string, byte[], string, byte[]>? buildEstablishing = null, 
-        Func<string, ChaChaOfSalsa, string, long, string, string, string, int, byte[], byte[]>? buildJoinServerMessage = null)
+        Action handleSuccess,
+        Func<string, string, int, string, byte[], string, string, byte[]>? buildEstablishing = null, 
+        Func<string, ChaChaOfSalsa, string, long, string, string, string, int, byte[], string, byte[]>? buildJoinServerMessage = null)
     {
         buildEstablishing ??= DefaultBuildEstablishing;
         buildJoinServerMessage ??= DefaultBuildJoinServerMessage;
+        
+        var crcSalt = await CrcSalt.Compute();
 
         TcpClient client = new TcpClient();
         try
@@ -63,7 +68,7 @@ public static class NetEaseConnection
             details.ReadExactly(remoteKey);
             details.ReadExactly(rsaKey);
             
-            byte[] establishMsg = buildEstablishing(nexusToken, gameVersion, userId, userToken, context, "netease");
+            byte[] establishMsg = buildEstablishing(nexusToken, gameVersion, userId, userToken, context, "netease", crcSalt);
             await stream.WriteAsync(establishMsg);
             
             using MemoryStream statusStream = await stream.ReadSteamWithInt16Async();
@@ -78,7 +83,7 @@ public static class NetEaseConnection
             ChaChaOfSalsa encryptCipher = new ChaChaOfSalsa(CoreExt.CombineWith(tokenXored, remoteKey), ChaChaNonce, encryption: true);
             ChaChaOfSalsa decryptCipher = new ChaChaOfSalsa(CoreExt.CombineWith(remoteKey, tokenXored), ChaChaNonce, encryption: false);
             
-            byte[] joinMsg = buildJoinServerMessage(nexusToken, encryptCipher, serverId, long.Parse(gameId), gameVersion, modInfo, "netease", userId, remoteKey);
+            byte[] joinMsg = buildJoinServerMessage(nexusToken, encryptCipher, serverId, long.Parse(gameId), gameVersion, modInfo, "netease", userId, remoteKey, crcSalt);
             await stream.WriteAsync(joinMsg);
             
             using MemoryStream responseStream = await stream.ReadSteamWithInt16Async();
@@ -93,7 +98,7 @@ public static class NetEaseConnection
         catch (HttpRequestException ex)
         {
             client.Close();
-            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (ex.StatusCode == HttpStatusCode.Unauthorized)
             {
                 Log.Error("Access token is invalid or expired.");
             }
@@ -105,67 +110,75 @@ public static class NetEaseConnection
         }
     }
 
-    private static byte[] DefaultBuildEstablishing(string nexusToken, string gameVersion, int userId, string userToken, byte[] context, string channel)
+    private static byte[] DefaultBuildEstablishing(string nexusToken, string gameVersion, int userId, string userToken, byte[] context, string channel, string crcSalt)
     {
         Log.Information("Building establishing message");
         
-        // 本地实现握手逻辑
-        var base64Context = Convert.ToBase64String(context);
-        var handshakeData = new
+        var md5Pair = Md5Mapping.GetMd5FromGameVersion(gameVersion);
+        
+        var userProfile = new UserProfile { UserId = userId, UserToken = userToken };
+        
+        var gameProfile = new GameProfile
         {
-            userId = userId,
-            userToken = userToken,
-            base64Context = base64Context,
-            channel = channel,
-            gameVersion = gameVersion
+            GameVersion = gameVersion,
+            User = userProfile,
+            GameId = userId.ToString(),
+            BootstrapMd5 = md5Pair.BootstrapMd5,
+            DatFileMd5 = md5Pair.DatFileMd5,
+            Mods = new ModList()
         };
         
-        // 模拟服务器返回的握手体，这里使用本地计算
-        var handshakeBody = ComputeLocalHandshakeBody(handshakeData);
+        var yggdrasilData = new YggdrasilData
+        {
+            LauncherVersion = gameVersion,
+            Channel = channel,
+            CrcSalt = crcSalt
+        };
         
-        var handshake = new EntityHandshake { HandshakeBody = handshakeBody };
-        return Convert.FromBase64String(handshake?.HandshakeBody ?? string.Empty);
-    }
-    
-    private static string ComputeLocalHandshakeBody(object handshakeData)
-    {
-        // 本地实现握手体计算逻辑
-        // 这里应该根据实际的网易握手协议实现
-        // 由于WebNexusApi被废弃，我们需要本地实现
-        var userId = handshakeData.GetType().GetProperty("userId").GetValue(handshakeData);
-        var userToken = handshakeData.GetType().GetProperty("userToken").GetValue(handshakeData);
-        var base64Context = handshakeData.GetType().GetProperty("base64Context").GetValue(handshakeData);
-        var channel = handshakeData.GetType().GetProperty("channel").GetValue(handshakeData);
-        var gameVersion = handshakeData.GetType().GetProperty("gameVersion").GetValue(handshakeData);
+        var generator = new Codexus.OpenSDK.Generator.YggdrasilGenerator(yggdrasilData);
         
-        // 模拟握手体生成逻辑
-        // 在实际实现中，这里应该有具体的加密/哈希算法
-        var combinedData = $"{userId}:{userToken}:{base64Context}:{channel}:{gameVersion}";
-        var handshakeBody = Convert.ToBase64String(Encoding.UTF8.GetBytes(combinedData));
+        var loginSeed = new byte[16];
+        var signContent = new byte[256];
+        if (context.Length >= 272)
+        {
+            Array.Copy(context, 0, loginSeed, 0, 16);
+            Array.Copy(context, 16, signContent, 0, 256);
+        }
         
-        return handshakeBody;
+        var initMessage = generator.GenerateInitializeMessage(gameProfile, loginSeed, signContent);
+        
+        return initMessage;
     }
 
-    private static byte[] DefaultBuildJoinServerMessage(string nexusToken, ChaChaOfSalsa cipher, string serverId, long gameId, string gameVersion, string modInfo, string channel, int userId, byte[] handshakeKey)
+    private static byte[] DefaultBuildJoinServerMessage(string nexusToken, ChaChaOfSalsa cipher, string serverId, long gameId, string gameVersion, string modInfo, string channel, int userId, byte[] handshakeKey, string crcSalt)
     {
         Log.Information("Building join server message");
         
-        // 本地实现认证逻辑
-        var authBody = ComputeLocalAuthBody(serverId, gameId, gameVersion, modInfo, channel, userId, Convert.ToBase64String(handshakeKey));
-        var authDict = new Dictionary<string, string> { { "authBody", authBody } };
-        return cipher.PackMessage(9, Convert.FromBase64String(authDict?["authBody"] ?? string.Empty));
-    }
-    
-    private static string ComputeLocalAuthBody(string serverId, long gameId, string gameVersion, string modInfo, string channel, int userId, string handshakeKey)
-    {
-        // 本地实现认证体计算逻辑
-        // 由于WebNexusApi被废弃，我们需要本地实现
+        var md5Pair = Md5Mapping.GetMd5FromGameVersion(gameVersion);
         
-        // 模拟认证体生成逻辑
-        // 在实际实现中，这里应该有具体的加密/哈希算法
-        var combinedData = $"{serverId}:{gameId}:{gameVersion}:{modInfo}:{channel}:{userId}:{handshakeKey}";
-        var authBody = Convert.ToBase64String(Encoding.UTF8.GetBytes(combinedData));
+        var userProfile = new UserProfile { UserId = userId, UserToken = nexusToken };
         
-        return authBody;
+        var gameProfile = new GameProfile
+        {
+            GameId = gameId.ToString(),
+            GameVersion = gameVersion,
+            BootstrapMd5 = md5Pair.BootstrapMd5,
+            DatFileMd5 = md5Pair.DatFileMd5,
+            User = userProfile,
+            Mods = new ModList()
+        };
+        
+        var yggdrasilData = new YggdrasilData
+        {
+            LauncherVersion = gameVersion,
+            Channel = channel,
+            CrcSalt = crcSalt
+        };
+        
+        var generator = new Codexus.OpenSDK.Generator.YggdrasilGenerator(yggdrasilData);
+        
+        var joinMessage = generator.GenerateJoinMessage(gameProfile, serverId, handshakeKey);
+        
+        return cipher.PackMessage(9, joinMessage);
     }
 }
