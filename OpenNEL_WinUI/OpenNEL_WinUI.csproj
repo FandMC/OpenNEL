@@ -58,12 +58,8 @@
     <Compile Remove="plugins\**" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Codexus.OpenSDK">
-        <HintPath>..\SDK\Codexus.OpenSDK.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
+    <ProjectReference Include="..\Codexus.OpenSDK\Codexus.OpenSDK.csproj" />
     <ProjectReference Include="..\OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" />
     <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
     <ProjectReference Include="..\OpenNEL.Com4399\OpenNEL.Com4399.csproj" />

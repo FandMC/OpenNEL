@@ -50,12 +50,10 @@ public static class SyncProgressBarUtil
 
         private void Display(string action)
         {
-            // GUI不需要控制台
         }
 
         public static void ClearCurrent()
         {
-            // GUI不需要控制台
         }
 
         public void Dispose()

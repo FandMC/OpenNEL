@@ -62,6 +62,7 @@ public class SConfigurationDisconnect : IPacket
 					await Task.Delay(500);
 					Log.Warning("正在关闭 Interceptor...");
 					GameManager.Instance.ShutdownInterceptor(interceptorId);
+					NotificationHost.ShowGlobal("检测到封禁,已成功关闭通道", ToastLevel.Success);
 				});
 			}
 		}

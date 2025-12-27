@@ -12,7 +12,7 @@ public static class HttpUtil
     {
         get
         {
-            var aes = System.Security.Cryptography.Aes.Create();
+            var aes = Aes.Create();
             aes.Padding = PaddingMode.None;
             return aes;
         }
@@ -24,7 +24,7 @@ public static class HttpUtil
 
     public static byte[] HttpEncrypt(byte[] bodyIn)
     {
-        var array = new byte[(int)Math.Ceiling((double)(bodyIn.Length + 16) / 16.0) * 16];
+        var array = new byte[(int)Math.Ceiling((bodyIn.Length + 16) / 16.0) * 16];
         Array.Copy(bodyIn, array, bodyIn.Length);
         
         var bytes = Encoding.ASCII.GetBytes(StringGenerator.GenerateRandomString(16, includeNumbers: false));

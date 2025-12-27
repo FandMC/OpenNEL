@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TargetFramework>net9.0</TargetFramework>
+        <LangVersion>14</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2"/>
+        <PackageReference Include="System.IO.Hashing" Version="10.0.0"/>
+    </ItemGroup>
+
+</Project>

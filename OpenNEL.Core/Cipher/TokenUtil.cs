@@ -12,7 +12,7 @@ public static class TokenUtil
 
     static TokenUtil()
     {
-        Aes = System.Security.Cryptography.Aes.Create();
+        Aes = Aes.Create();
         Aes.Mode = CipherMode.CBC;
         Aes.Padding = PaddingMode.Zeros;
         Aes.KeySize = 128;
