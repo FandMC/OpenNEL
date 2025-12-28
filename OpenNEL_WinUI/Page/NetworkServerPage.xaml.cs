@@ -361,6 +361,23 @@ namespace OpenNEL_WinUI
             _ = RefreshServers(q);
         }
 
+        private async void DirectServerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenNEL_WinUI.Component.ServerInputDialog
+            {
+                XamlRoot = this.XamlRoot,
+                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style
+            };
+            
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(dialog.ServerId))
+            {
+                var serverItem = new ServerItem { EntityId = dialog.ServerId, Name = "" };
+                var mockButton = new Button { Tag = serverItem };
+                JoinServerButton_Click(mockButton, e); 
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }

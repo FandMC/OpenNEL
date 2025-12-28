@@ -24,11 +24,17 @@
 
         <Grid Grid.Row="0" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="300"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="网络服务器" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
-            <TextBox Grid.Column="1"
+            <TextBlock Grid.Column="1" Text="网络服务器" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
+            <Button Grid.Column="0"
+                    x:Name="DirectServerButton"
+                    Content="指定服务器"
+                    Click="DirectServerButton_Click"
+                    Margin="0,0,12,0"/>
+            <TextBox Grid.Column="2"
                      x:Name="SearchBox"
                      PlaceholderText="搜索服务器"
                      TextChanged="SearchBox_TextChanged"/>
