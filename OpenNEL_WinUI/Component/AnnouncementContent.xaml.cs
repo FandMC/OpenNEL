@@ -29,7 +29,7 @@ namespace OpenNEL_WinUI
     {
         public AnnouncementContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             this.Loaded += AnnouncementContent_Loaded;
         }
 

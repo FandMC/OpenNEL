@@ -19,10 +19,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using OpenNEL.SDK.RakNet;
 using OpenNEL.Interceptors;
 using OpenNEL.GameLauncher.Services.Java;
-using OpenNEL.GameLauncher.Services.Bedrock;
 using OpenNEL_WinUI.Entities.Web.NEL;
 
 namespace OpenNEL_WinUI.Manager;
@@ -30,10 +28,8 @@ namespace OpenNEL_WinUI.Manager;
 internal class GameManager
 {
     private readonly Lock _lock = new Lock();
-    static readonly Dictionary<Guid, OpenNEL.GameLauncher.Services.Java.LauncherService> Launchers = new();
-    static readonly Dictionary<Guid, OpenNEL.GameLauncher.Services.Bedrock.LauncherService> PeLaunchers = new();
+    static readonly Dictionary<Guid, LauncherService> Launchers = new();
     static readonly Dictionary<Guid, Interceptor> Interceptors = new();
-    static readonly Dictionary<Guid, IRakNet> PeInterceptors = new();
     static readonly object Lock = new object();
     public static GameManager Instance { get; } = new GameManager();
 
@@ -84,7 +80,7 @@ internal class GameManager
         }
     }
 
-    public void AddLauncher(OpenNEL.GameLauncher.Services.Java.LauncherService launcher)
+    public void AddLauncher(LauncherService launcher)
     {
         using (_lock.EnterScope())
         {

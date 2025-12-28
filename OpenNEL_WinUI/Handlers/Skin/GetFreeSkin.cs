@@ -26,12 +26,28 @@ using OpenNEL.WPFLauncher.Entities.Skin;
 
 namespace OpenNEL_WinUI.Handlers.Skin;
 
+public class GetFreeSkinResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public List<SkinItemData> Items { get; set; } = new();
+    public bool HasMore { get; set; }
+    public bool NotLogin { get; set; }
+}
+
+public class SkinItemData
+{
+    public string EntityId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string PreviewUrl { get; set; } = string.Empty;
+}
+
 public class GetFreeSkin
 {
-    public object Execute(int offset, int length = 20)
+    public GetFreeSkinResult Execute(int offset, int length = 20)
     {
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new GetFreeSkinResult { NotLogin = true };
 
         try
         {
@@ -45,16 +61,16 @@ public class GetFreeSkin
             catch (Exception ex)
             {
                 Log.Error(ex, "获取皮肤列表失败: {Message}", ex.Message);
-                return new { type = "skins_error", message = ex.Message ?? "获取列表失败" };
+                return new GetFreeSkinResult { Success = false, Message = ex.Message};
             }
 
-            var baseData = list.Data ?? new List<EntitySkin>();
+            var baseData = list.Data;
             var baseCount = baseData.Count;
             Log.Information("免费皮肤基础数量={Count}", baseCount);
 
             if (baseCount == 0)
             {
-                return new { type = "skins", items = Array.Empty<object>(), hasMore = false };
+                return new GetFreeSkinResult { Success = true, Items = new(), HasMore = false };
             }
 
             Entities<EntitySkin>? detailed = null;
@@ -70,22 +86,22 @@ public class GetFreeSkin
             var data = detailed?.Data ?? baseData;
             Log.Information("皮肤详情数量={Count}", data.Count);
 
-            var items = data.Select(s => new
+            var items = data.Select(s => new SkinItemData
             {
-                entityId = s.EntityId ?? string.Empty,
-                name = s.Name ?? string.Empty,
-                previewUrl = s.TitleImageUrl ?? string.Empty
-            }).ToArray();
+                EntityId = s.EntityId,
+                Name = s.Name,
+                PreviewUrl = s.TitleImageUrl
+            }).ToList();
 
             var hasMore = baseCount >= length;
-            Log.Information("皮肤返回条目数={Count} hasMore={HasMore}", items.Length, hasMore);
+            Log.Information("皮肤返回条目数={Count} hasMore={HasMore}", items.Count, hasMore);
 
-            return new { type = "skins", items, hasMore };
+            return new GetFreeSkinResult { Success = true, Items = items, HasMore = hasMore };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "获取皮肤列表失败");
-            return new { type = "skins_error", message = "获取失败" };
+            return new GetFreeSkinResult { Success = false, Message = "获取失败" };
         }
     }
 }

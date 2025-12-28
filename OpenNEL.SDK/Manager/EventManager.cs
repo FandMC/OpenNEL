@@ -125,4 +125,17 @@ public class EventManager
 			_eventHandlers.Remove(typeof(T));
 		}
 	}
+
+	public void ClearChannelHandlers(string channel)
+	{
+		if (string.IsNullOrEmpty(channel)) return;
+		
+		foreach (var eventType in _eventHandlers.Keys.ToList())
+		{
+			if (_eventHandlers[eventType].Remove(channel) && _eventHandlers[eventType].Count == 0)
+			{
+				_eventHandlers.Remove(eventType);
+			}
+		}
+	}
 }

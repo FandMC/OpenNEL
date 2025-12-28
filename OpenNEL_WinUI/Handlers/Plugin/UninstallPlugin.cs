@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Linq;
 using OpenNEL.PluginLoader.Manager;
-using OpenNEL_WinUI.type;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Plugin
@@ -30,7 +29,6 @@ namespace OpenNEL_WinUI.Handlers.Plugin
             {
                 Log.Information("卸载插件 {PluginId}", pluginId);
                 PluginManager.Instance.UninstallPlugin(pluginId);
-                AppState.WaitRestartPlugins[pluginId] = true;
             }
             var updPayload = new { type = "installed_plugins_updated" };
             var items = PluginManager.Instance.Plugins.Values.Select(plugin => new {

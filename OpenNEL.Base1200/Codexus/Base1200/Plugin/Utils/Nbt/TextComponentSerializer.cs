@@ -20,9 +20,12 @@ public static class TextComponentSerializer
 			val.WriteByte(8);
 			WriteString(val, "text");
 			WriteString(val, component.Text);
-			val.WriteByte(8);
-			WriteString(val, "color");
-			WriteString(val, component.Color);
+			if (!string.IsNullOrEmpty(component.Color))
+			{
+				val.WriteByte(8);
+				WriteString(val, "color");
+				WriteString(val, component.Color);
+			}
 			val.WriteByte(0);
 			return val;
 		}
@@ -35,7 +38,58 @@ public static class TextComponentSerializer
 
 	public static TextComponent Deserialize(IByteBuffer buffer)
 	{
-		throw new NotImplementedException();
+		SkipNbtCompound(buffer);
+		return new TextComponent();
+	}
+
+	private static void SkipNbtCompound(IByteBuffer buffer)
+	{
+		var tagType = buffer.ReadByte();
+		if (tagType != 10) return;
+		while (true)
+		{
+			var type = buffer.ReadByte();
+			if (type == 0) break;
+			SkipString(buffer);
+			SkipNbtValue(buffer, type);
+		}
+	}
+
+	private static void SkipNbtValue(IByteBuffer buffer, byte type)
+	{
+		switch (type)
+		{
+			case 1: buffer.SkipBytes(1); break;
+			case 2: buffer.SkipBytes(2); break;
+			case 3: buffer.SkipBytes(4); break;
+			case 4: buffer.SkipBytes(8); break;
+			case 5: buffer.SkipBytes(4); break;
+			case 6: buffer.SkipBytes(8); break;
+			case 7: buffer.SkipBytes(buffer.ReadInt()); break;
+			case 8: SkipString(buffer); break;
+			case 9:
+				var listType = buffer.ReadByte();
+				var listLen = buffer.ReadInt();
+				for (int i = 0; i < listLen; i++) SkipNbtValue(buffer, listType);
+				break;
+			case 10:
+				while (true)
+				{
+					var t = buffer.ReadByte();
+					if (t == 0) break;
+					SkipString(buffer);
+					SkipNbtValue(buffer, t);
+				}
+				break;
+			case 11: buffer.SkipBytes(buffer.ReadInt() * 4); break;
+			case 12: buffer.SkipBytes(buffer.ReadInt() * 8); break;
+		}
+	}
+
+	private static void SkipString(IByteBuffer buffer)
+	{
+		var len = buffer.ReadUnsignedShort();
+		buffer.SkipBytes(len);
 	}
 
 	private static void WriteString(IByteBuffer buffer, string value)

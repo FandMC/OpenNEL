@@ -18,13 +18,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System.Linq;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
+using OpenNEL_WinUI.Entities.Web.RentalGame;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.RentalServer;
 
 public class ListRentalServers
 {
-    public object Execute(int offset, int limit)
+    public ListRentalServersResult Execute(int offset, int limit)
     {
         Log.Debug("[RentalServer] ListRentalServers.Execute: offset={Offset}, limit={Limit}", offset, limit);
         
@@ -32,37 +33,33 @@ public class ListRentalServers
         if (user == null)
         {
             Log.Debug("[RentalServer] ListRentalServers: 用户未登录");
-            return new { type = "notlogin" };
+            return new ListRentalServersResult { NotLogin = true };
         }
         
         Log.Debug("[RentalServer] ListRentalServers: userId={UserId}", user.UserId);
 
-        var result = AppState.X19.GetRentalGameList(user.UserId, user.AccessToken, offset);
-        Log.Debug("[RentalServer] GetRentalGameList result: Code={Code}, Count={Count}", result.Code, result.Data?.Count() ?? 0);
-        
-        var items = new System.Collections.Generic.List<object>();
-        var hasMore = false;
-        
-        if (result.Data != null)
+        try
         {
-            var count = 0;
-            foreach (var item in result.Data)
+            var result = AppState.X19.GetRentalGameList(user.UserId, user.AccessToken, offset);
+            Log.Debug("[RentalServer] GetRentalGameList result: Code={Code}, Count={Count}", result.Code, result.Data?.Count() ?? 0);
+            
+            var items = result.Data?.Select(item => new RentalServerItem
             {
-                count++;
-                items.Add(new
-                {
-                    entityId = item.EntityId,
-                    name = string.IsNullOrEmpty(item.ServerName) ? item.Name : item.ServerName,
-                    serverName = item.ServerName,
-                    playerCount = (int)item.PlayerCount,
-                    hasPassword = item.HasPassword == "1",
-                    mcVersion = item.McVersion
-                });
-            }
-            hasMore = count >= limit;
+                EntityId = item.EntityId,
+                Name = string.IsNullOrEmpty(item.ServerName) ? item.Name : item.ServerName,
+                PlayerCount = (int)item.PlayerCount,
+                HasPassword = item.HasPassword == "1",
+                McVersion = item.McVersion
+            }).ToList() ?? new();
+            
+            var hasMore = items.Count >= limit;
+            Log.Debug("[RentalServer] ListRentalServers: 找到 {Count} 个服务器, hasMore={HasMore}", items.Count, hasMore);
+            return new ListRentalServersResult { Success = true, Items = items, HasMore = hasMore };
         }
-        
-        Log.Debug("[RentalServer] ListRentalServers: 找到 {Count} 个服务器, hasMore={HasMore}", items.Count, hasMore);
-        return new { type = "rental_servers", items, hasMore };
+        catch (System.Exception ex)
+        {
+            Log.Error(ex, "获取租赁服列表失败");
+            return new ListRentalServersResult { Success = false, Message = "获取失败" };
+        }
     }
 }

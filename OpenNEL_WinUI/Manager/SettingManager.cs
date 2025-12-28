@@ -19,6 +19,8 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Serilog;
 using OpenNEL_WinUI.type;
 
@@ -50,6 +52,17 @@ public class SettingManager
     }
 
     public SettingData Get() => _settings;
+
+    public ElementTheme GetAppTheme()
+    {
+        var mode = _settings.ThemeMode?.Trim().ToLowerInvariant() ?? "system";
+        if (mode == "light") return ElementTheme.Light;
+        if (mode == "dark") return ElementTheme.Dark;
+        return ElementTheme.Default;
+    }
+
+    public void ApplyTheme(ContentDialog dialog) => dialog.RequestedTheme = GetAppTheme();
+    public void ApplyTheme(FrameworkElement element) => element.RequestedTheme = GetAppTheme();
 
     public void Update(SettingData data)
     {

@@ -21,7 +21,6 @@ using OpenNEL.G79;
 using OpenNEL.WPFLauncher;
 
 namespace OpenNEL_WinUI.type;
-using System.Collections.Concurrent;
 
 internal static class AppState
 {
@@ -35,7 +34,6 @@ internal static class AppState
     public static WPFLauncherClient X19 => _x19 ??= new WPFLauncherClient();
     
     public static Services? Services;
-    public static ConcurrentDictionary<string, bool> WaitRestartPlugins { get; } = new();
     public static bool Debug;
     public static bool AutoDisconnectOnBan;
     public static bool Pre = AppInfo.AppVersion.Contains("pre", StringComparison.OrdinalIgnoreCase);

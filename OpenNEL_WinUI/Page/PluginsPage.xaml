@@ -58,10 +58,6 @@
                                 <StackPanel Grid.Column="0" Spacing="4">
                                     <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}"/>
                                     <TextBlock Text="{x:Bind Version}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                    <TextBlock Text="已卸载，等待重启" 
-                                               Foreground="Red" 
-                                               Style="{StaticResource CaptionTextBlockStyle}"
-                                               Visibility="{x:Bind IsWaitingRestart, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}"/>
                                 </StackPanel>
 
                                 <!-- Actions -->

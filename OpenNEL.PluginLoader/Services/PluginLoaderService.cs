@@ -59,10 +59,45 @@ public class PluginLoaderService
 
     private bool TryLoadPlugin(string filePath)
     {
-        var assembly = Assembly.LoadFrom(filePath);
+        // 读取文件到内存，不锁定文件
+        byte[] assemblyBytes;
+        try
+        {
+            assemblyBytes = File.ReadAllBytes(filePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "无法读取插件文件 {File}", filePath);
+            return false;
+        }
+
+        // 从内存加载程序集
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.Load(assemblyBytes);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "无法加载插件程序集 {File}", filePath);
+            return false;
+        }
+
         bool loaded = false;
 
-        var pluginTypes = assembly.GetTypes()
+        Type[] types;
+        try
+        {
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            Log.Error(ex, "无法获取插件类型 {File}: {LoaderExceptions}", filePath, 
+                string.Join(", ", ex.LoaderExceptions?.Select(e => e?.Message) ?? Array.Empty<string>()));
+            return false;
+        }
+
+        var pluginTypes = types
             .Where(type => typeof(IPlugin).IsAssignableFrom(type) 
                            && type != null 
                            && !type.IsAbstract 

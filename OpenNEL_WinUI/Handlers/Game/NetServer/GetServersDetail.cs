@@ -19,18 +19,18 @@ using System;
 using System.Collections.Generic;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
+using OpenNEL_WinUI.Entities.Web.NetGame;
 using Serilog;
-using System.Text.Json;
 
 namespace OpenNEL_WinUI.Handlers.Game.NetServer
 {
     public class GetServersDetail
     {
-        public object Execute(string gameId)
+        public ServerDetailResult Execute(string gameId)
         {
             var last = UserManager.Instance.GetLastAvailableUser();
-            if (last == null) return new { type = "notlogin" };
-            if (string.IsNullOrWhiteSpace(gameId)) return new { type = "server_detail_error", message = "参数错误" };
+            if (last == null) return new ServerDetailResult { NotLogin = true };
+            if (string.IsNullOrWhiteSpace(gameId)) return new ServerDetailResult { Success = false, Message = "参数错误" };
             try
             {
                 var detail = AppState.X19.QueryNetGameDetailById(last.UserId, last.AccessToken, gameId);
@@ -52,12 +52,12 @@ namespace OpenNEL_WinUI.Handlers.Game.NetServer
                         }
                     }
                 }
-                return new { type = "server_detail", images = imgs.ToArray() };
+                return new ServerDetailResult { Success = true, Images = imgs };
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "获取服务器详情失败: {GameId}", gameId);
-                return new { type = "server_detail_error", message = "获取失败" };
+                return new ServerDetailResult { Success = false, Message = "获取失败" };
             }
         }
     }

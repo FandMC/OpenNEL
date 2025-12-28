@@ -35,8 +35,8 @@ namespace OpenNEL_WinUI
 
         public PluginStorePage()
         {
-            this.InitializeComponent();
-            this.Loaded += PluginStorePage_Loaded;
+            InitializeComponent();
+            Loaded += PluginStorePage_Loaded;
         }
 
         private async void PluginStorePage_Loaded(object sender, RoutedEventArgs e)
@@ -47,37 +47,13 @@ namespace OpenNEL_WinUI
         private async Task LoadAvailablePluginsAsync()
         {
             AvailablePlugins.Clear();
-            var obj = await new ListAvailablePlugins().Execute(AppInfo.ApiBaseURL + "/v1/pluginlist");
-            var itemsProp = obj.GetType().GetProperty("items");
-            var arr = itemsProp != null ? itemsProp.GetValue(obj) as System.Array : null;
-            var installedIds = PluginHandler.GetInstalledPlugins().Select(p => p.Id.ToUpperInvariant()).ToHashSet();
-            if (arr != null)
+            var items = await new ListAvailablePlugins().Execute(AppInfo.ApiBaseURL + "/v1/pluginlist");
+            var installedIds = new ListInstalledPlugins().Execute().Select(p => p.Id.ToUpperInvariant()).ToHashSet();
+            foreach (var item in items)
             {
-                foreach (var it in arr)
-                {
-                    var id = GetPropString(it, "id")?.ToUpperInvariant() ?? string.Empty;
-                    var item = new AvailablePluginItem
-                    {
-                        Id = id,
-                        Name = GetPropString(it, "name") ?? string.Empty,
-                        Version = GetPropString(it, "version") ?? string.Empty,
-                        LogoUrl = GetPropString(it, "logoUrl") ?? string.Empty,
-                        ShortDescription = GetPropString(it, "shortDescription") ?? string.Empty,
-                        Publisher = GetPropString(it, "publisher") ?? string.Empty,
-                        DownloadUrl = GetPropString(it, "downloadUrl") ?? string.Empty,
-                        Depends = (GetPropString(it, "depends") ?? string.Empty).ToUpperInvariant(),
-                        IsInstalled = installedIds.Contains(id)
-                    };
-                    AvailablePlugins.Add(item);
-                }
+                item.IsInstalled = installedIds.Contains(item.Id);
+                AvailablePlugins.Add(item);
             }
-        }
-
-        private static string GetPropString(object o, string name)
-        {
-            var p = o.GetType().GetProperty(name);
-            var v = p != null ? p.GetValue(o) : null;
-            return v != null ? v.ToString() : null;
         }
 
         private async void InstallAvailablePluginButton_Click(object sender, RoutedEventArgs e)
@@ -103,18 +79,7 @@ namespace OpenNEL_WinUI
 
         private async Task InstallOneAsync(AvailablePluginItem item)
         {
-            var payload = JsonSerializer.Serialize(new
-            {
-                plugin = new
-                {
-                    id = item.Id,
-                    name = item.Name,
-                    version = item.Version,
-                    downloadUrl = item.DownloadUrl,
-                    depends = item.Depends
-                }
-            });
-            await Task.Run(() => PluginHandler.InstallPluginByInfo(payload));
+            await Task.Run(() => new InstallPlugin().Execute(item).GetAwaiter().GetResult());
         }
     }
 }

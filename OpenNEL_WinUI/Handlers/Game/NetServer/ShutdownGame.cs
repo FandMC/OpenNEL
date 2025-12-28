@@ -26,7 +26,7 @@ public class ShutdownGame
     public object[] Execute(IEnumerable<string> identifiers)
     {
         var closed = new List<string>();
-        foreach (var s in identifiers ?? Array.Empty<string>())
+        foreach (var s in identifiers)
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
             if (Guid.TryParse(s, out var id))

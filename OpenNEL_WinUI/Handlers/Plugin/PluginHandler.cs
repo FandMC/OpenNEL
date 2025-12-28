@@ -15,45 +15,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using OpenNEL.PluginLoader.Manager;
 using OpenNEL_WinUI.Utils;
+using OpenNEL_WinUI.type;
 
 namespace OpenNEL_WinUI.Handlers.Plugin
 {
     public static class PluginHandler
     {
-        public static List<PluginViewModel> GetInstalledPlugins()
-        {
-            return new ListInstalledPlugins().Execute();
-        }
-
-        public static void UninstallPlugin(string pluginId)
-        {
-            new UninstallPlugin().Execute(pluginId);
-        }
-
-        public static void RestartGateway()
-        {
-            new RestartGateway().Execute();
-        }
-
-        public static object InstallPluginByInfo(string infoJson)
-        {
-            return new InstallPlugin().Execute(infoJson).GetAwaiter().GetResult();
-        }
-
-        public static object UpdatePluginByInfo(string pluginId, string oldVersion, string infoJson)
-        {
-            return new UpdatePlugin().Execute(pluginId, oldVersion, infoJson).GetAwaiter().GetResult();
-        }
-
-        public static object ListAvailablePlugins(string url = null)
-        {
-            return new ListAvailablePlugins().Execute(url).GetAwaiter().GetResult();
-        }
 
         public static (bool hasBase1200, bool hasHeypixel) DetectDefaultProtocolsInstalled()
         {
@@ -77,46 +51,23 @@ namespace OpenNEL_WinUI.Handlers.Plugin
 
         public static async Task InstallDefaultProtocolsAsync()
         {
-            var basePayload = JsonSerializer.Serialize(new
+            var plugins = await new ListAvailablePlugins().Execute(AppInfo.ApiBaseURL + "/v1/pluginlist");
+            var defaultIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                plugin = new
-                {
-                    id = "36d701b3-6e98-3e92-af53-c4ec327b3a71",
-                    name = "Base1200",
-                    version = "1.4.6",
-                    downloadUrl = "https://api.fandmc.cn/v2/downloads/Base1200.UG",
-                    depends = ""
-                }
-            });
-            await Task.Run(async () => await new InstallPlugin().Execute(basePayload));
-            var hpPayload = JsonSerializer.Serialize(new
+                "36D701B3-6E98-3E92-AF53-C4EC327B3A71",
+                "F110DA9F-F0CB-F926-C72C-FEAC7FCF3601"
+            };
+            foreach (var p in plugins.Where(x => defaultIds.Contains(x.Id)))
             {
-                plugin = new
-                {
-                    id = "f110da9f-f0cb-f926-c72c-feac7fcf3601",
-                    name = "Heypixel Protocol",
-                    version = "2.2.6",
-                    downloadUrl = "https://api.fandmc.cn/v2/downloads/HeypixelProtocol.UG",
-                    depends = ""
-                }
-            });
-            await Task.Run(async () => await new InstallPlugin().Execute(hpPayload));
+                await new InstallPlugin().Execute(p);
+            }
         }
 
         public static async Task InstallBase1200Async()
         {
-            var basePayload = JsonSerializer.Serialize(new
-            {
-                plugin = new
-                {
-                    id = "36d701b3-6e98-3e92-af53-c4ec327b3a71",
-                    name = "Base1200",
-                    version = "1.4.6",
-                    downloadUrl = "https://api.fandmc.cn/v2/downloads/Base1200.UG",
-                    depends = ""
-                }
-            });
-            await Task.Run(async () => await new InstallPlugin().Execute(basePayload));
+            var plugins = await new ListAvailablePlugins().Execute(AppInfo.ApiBaseURL + "/v1/pluginlist");
+            var p = plugins.FirstOrDefault(x => string.Equals(x.Id, "36D701B3-6E98-3E92-AF53-C4EC327B3A71", System.StringComparison.OrdinalIgnoreCase));
+            if (p != null) await new InstallPlugin().Execute(p);
         }
     }
 }

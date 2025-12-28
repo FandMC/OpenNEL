@@ -35,7 +35,7 @@ namespace OpenNEL_WinUI
         public bool NotLogin { get => _notLogin; private set { _notLogin = value; OnPropertyChanged(nameof(NotLogin)); } }
         public SkinPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             this.DataContext = this;
             this.Loaded += SkinPage_Loaded;
         }
@@ -63,50 +63,26 @@ namespace OpenNEL_WinUI
             try
             {
                 var r = await Task.Run(() => new GetFreeSkin().Execute(0, 20));
-                var tProp = r.GetType().GetProperty("type");
-                var tVal = tProp != null ? tProp.GetValue(r) as string : null;
-                Log.Information("皮肤刷新返回 type={Type}", tVal ?? string.Empty);
                 Skins.Clear();
-                if (string.Equals(tVal, "skins"))
-                {
-                    var itemsProp = r.GetType().GetProperty("items");
-                    var items = itemsProp?.GetValue(r) as System.Collections.IEnumerable;
-                    if (items != null)
-                    {
-                        int count = 0;
-                        foreach (var it in items)
-                        {
-                            var idProp = it.GetType().GetProperty("entityId");
-                            var nameProp = it.GetType().GetProperty("name");
-                            var prevProp = it.GetType().GetProperty("previewUrl");
-                            var id = idProp?.GetValue(it) as string ?? string.Empty;
-                            var name = nameProp?.GetValue(it) as string ?? string.Empty;
-                            var prev = prevProp?.GetValue(it) as string ?? string.Empty;
-                            Skins.Add(new SkinItem { Name = name, PreviewUrl = prev, EntityId = id });
-                            if (count < 5) Log.Information("皮肤项: {Name} {Id} {Preview}", name, id, prev);
-                            count++;
-                        }
-                        Log.Information("皮肤项数量={Count}", count);
-                        if (count == 0) NotificationHost.ShowGlobal("暂无皮肤数据", ToastLevel.Error);
-                    }
-                    else
-                    {
-                        NotificationHost.ShowGlobal("皮肤接口返回空", ToastLevel.Error);
-                    }
-                }
-                else if (string.Equals(tVal, "skins_error"))
-                {
-                    var msgProp = r.GetType().GetProperty("message");
-                    var msg = msgProp?.GetValue(r) as string ?? string.Empty;
-                    Log.Error("皮肤刷新失败: {Message}", msg);
-                    NotificationHost.ShowGlobal(string.IsNullOrWhiteSpace(msg) ? "刷新失败" : msg, ToastLevel.Error);
-                }
-                else if (string.Equals(tVal, "notlogin"))
+                if (r.NotLogin)
                 {
                     Log.Error("皮肤刷新失败: 未登录");
                     NotificationHost.ShowGlobal("未登录", ToastLevel.Error);
                     NotLogin = true;
+                    return;
                 }
+                if (!r.Success)
+                {
+                    Log.Error("皮肤刷新失败: {Message}", r.Message);
+                    NotificationHost.ShowGlobal(string.IsNullOrWhiteSpace(r.Message) ? "刷新失败" : r.Message, ToastLevel.Error);
+                    return;
+                }
+                Log.Information("皮肤刷新返回数量={Count}", r.Items.Count);
+                foreach (var it in r.Items)
+                {
+                    Skins.Add(new SkinItem { Name = it.Name, PreviewUrl = it.PreviewUrl, EntityId = it.EntityId });
+                }
+                if (r.Items.Count == 0) NotificationHost.ShowGlobal("暂无皮肤数据", ToastLevel.Error);
             }
             catch { }
         }
@@ -135,26 +111,18 @@ namespace OpenNEL_WinUI
                 if (string.IsNullOrWhiteSpace(id)) return;
                 btn.IsEnabled = false;
                 var r = await Task.Run(() => new SetSkin().Execute(id));
-                var t = r.GetType();
-                var type = t.GetProperty("type")?.GetValue(r) as string ?? string.Empty;
-                if (string.Equals(type, "set_skin_result"))
-                {
-                    var succObj = t.GetProperty("success")?.GetValue(r);
-                    var succ = succObj is bool b && b;
-                    var msg = t.GetProperty("message")?.GetValue(r) as string ?? string.Empty;
-                    if (succ)
-                    {
-                        NotificationHost.ShowGlobal("皮肤已应用", ToastLevel.Success);
-                    }
-                    else
-                    {
-                        var m = string.IsNullOrWhiteSpace(msg) ? "设置失败" : msg;
-                        NotificationHost.ShowGlobal(m, ToastLevel.Error);
-                    }
-                }
-                else if (string.Equals(type, "notlogin"))
+                if (r.NotLogin)
                 {
                     NotificationHost.ShowGlobal("未登录", ToastLevel.Error);
+                    return;
+                }
+                if (r.Success)
+                {
+                    NotificationHost.ShowGlobal("皮肤已应用", ToastLevel.Success);
+                }
+                else
+                {
+                    NotificationHost.ShowGlobal(string.IsNullOrWhiteSpace(r.Message) ? "设置失败" : r.Message, ToastLevel.Error);
                 }
             }
             catch { }

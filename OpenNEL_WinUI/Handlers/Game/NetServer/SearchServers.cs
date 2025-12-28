@@ -24,19 +24,20 @@ using OpenNEL_WinUI.Utils;
 using Serilog;
 using OpenNEL.WPFLauncher.Entities.NetGame;
 using OpenNEL.WPFLauncher.Entities;
+using OpenNEL_WinUI.Entities.Web.NetGame;
 
 namespace OpenNEL_WinUI.Handlers.Game.NetServer;
 
 public class SearchServers
 {
-    public object Execute(string keyword, int offset, int pageSize)
+    public ListServersResult Execute(string keyword, int offset, int pageSize)
     {
         Log.Debug("[SearchServers] Execute: keyword={Keyword}, offset={Offset}, pageSize={PageSize}", keyword, offset, pageSize);
         var last = UserManager.Instance.GetLastAvailableUser();
         if (last == null)
         {
             Log.Debug("[SearchServers] 用户未登录");
-            return new { type = "notlogin" };
+            return new ListServersResult { NotLogin = true };
         }
         try
         {
@@ -45,15 +46,15 @@ public class SearchServers
             var data = all.Data ?? new List<EntityNetGameItem>();
             var q = string.IsNullOrWhiteSpace(keyword) ? data.ToList() : data.Where(s => (s.Name ?? string.Empty).IndexOf(keyword!, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
             Log.Debug("[SearchServers] 过滤后数量: {FilteredCount}", q.Count);
-            var pageItems = q.Skip(offset).Take(pageSize).Select(s => new { entityId = s.EntityId, name = s.Name }).ToArray();
+            var pageItems = q.Skip(offset).Take(pageSize).Select(s => new ServerItem { EntityId = s.EntityId, Name = s.Name }).ToList();
             var hasMore = offset + pageSize < q.Count;
-            Log.Debug("[SearchServers] 返回页面数量: {PageCount}, hasMore={HasMore}", pageItems.Length, hasMore);
-            return new { type = "servers", items = pageItems, hasMore };
+            Log.Debug("[SearchServers] 返回页面数量: {PageCount}, hasMore={HasMore}", pageItems.Count, hasMore);
+            return new ListServersResult { Success = true, Items = pageItems, HasMore = hasMore };
         }
         catch (System.Exception ex)
         {
             Log.Error(ex, "获取服务器列表失败");
-            return new { type = "servers_error", message = "获取失败" };
+            return new ListServersResult { Success = false, Message = "获取失败" };
         }
     }
 }

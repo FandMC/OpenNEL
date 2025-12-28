@@ -31,7 +31,7 @@ namespace OpenNEL_WinUI
         public SettingsPage()
         {
             _initing = true;
-            this.InitializeComponent();
+            InitializeComponent();
             var s = SettingManager.Instance.Get();
             var mode = (s?.ThemeMode ?? string.Empty).Trim().ToLowerInvariant();
             if (mode == "light") ThemeRadios.SelectedIndex = 1;

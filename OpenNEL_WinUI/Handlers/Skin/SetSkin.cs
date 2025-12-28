@@ -22,12 +22,19 @@ using System.Text.Json;
 
 namespace OpenNEL_WinUI.Handlers.Skin;
 
+public class SetSkinResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public bool NotLogin { get; set; }
+}
+
 public class SetSkin
 {
-    public object Execute(string entityId)
+    public SetSkinResult Execute(string entityId)
     {
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new SetSkinResult { NotLogin = true };
         try
         {
             var r = AppState.X19.SetSkin(last.UserId, last.AccessToken, entityId);
@@ -42,12 +49,12 @@ public class SetSkin
             var succ = code == 0;
             Log.Debug("设置皮肤响应: code={Code} message={Message}", code, msg);
             try { Log.Debug("设置皮肤响应对象: {Json}", JsonSerializer.Serialize(r)); } catch { }
-            return new { type = "set_skin_result", success = succ, message = msg };
+            return new SetSkinResult { Success = succ, Message = msg };
         }
         catch (System.Exception ex)
         {
             Log.Error(ex, "设置皮肤失败");
-            return new { type = "set_skin_error", message = "设置失败" };
+            return new SetSkinResult { Success = false, Message = "设置失败" };
         }
     }
 }

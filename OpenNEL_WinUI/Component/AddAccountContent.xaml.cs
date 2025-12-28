@@ -36,7 +36,7 @@ namespace OpenNEL_WinUI
         private string _pc4399SessionId;
         public AddAccountContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             var mode = SettingManager.Instance.Get().ThemeMode?.Trim().ToLowerInvariant() ?? "system";
             ElementTheme t = ElementTheme.Default;
             if (mode == "light") t = ElementTheme.Light;

@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Text.Json;
 using OpenNEL.PluginLoader.Manager;
-using OpenNEL_WinUI.type;
 using Serilog;
 using System.Net.Http;
 using System.IO;
@@ -28,61 +27,53 @@ using OpenNEL_WinUI.Utils;
 
 namespace OpenNEL_WinUI.Handlers.Plugin
 {
+    public class InstallPluginRequest
+    {
+        public AvailablePluginItem? Plugin { get; set; }
+    }
+
     public class InstallPlugin
     {
+        private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+        public Task<object> Execute(AvailablePluginItem item)
+        {
+            return ExecuteInternal(item.Id, item.Name, item.Version, item.DownloadUrl, item.Depends);
+        }
+
         public async Task<object> Execute(string infoJson)
         {
             try
             {
-                using var doc = JsonDocument.Parse(infoJson);
-                var info = doc.RootElement;
-                var pluginEl = info.TryGetProperty("plugin", out var pel) ? pel : default;
-                if (pluginEl.ValueKind != JsonValueKind.Object) return new { type = "install_plugin_error", message = "参数错误" };
-                var id = pluginEl.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
-                var name = pluginEl.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
-                var version = pluginEl.TryGetProperty("version", out var verEl) ? verEl.GetString() : null;
-                var downloadUrl = pluginEl.TryGetProperty("downloadUrl", out var urlEl) ? urlEl.GetString() : null;
-                var depends = pluginEl.TryGetProperty("depends", out var depEl) ? depEl.GetString() : null;
+                var req = JsonSerializer.Deserialize<InstallPluginRequest>(infoJson, JsonOptions);
+                if (req?.Plugin == null) return new { type = "install_plugin_error", message = "参数错误" };
+                return await Execute(req.Plugin);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "安装插件失败");
+                return new { type = "install_plugin_error", message = ex.Message };
+            }
+        }
+
+        private async Task<object> ExecuteInternal(string? id, string? name, string? version, string? downloadUrl, string? depends)
+        {
+            try
+            {
                 if (string.IsNullOrWhiteSpace(downloadUrl) || string.IsNullOrWhiteSpace(id)) return new { type = "install_plugin_error", message = "参数错误" };
                 if (!string.IsNullOrWhiteSpace(depends))
                 {
                     var need = !PluginManager.Instance.Plugins.Values.Any(p => string.Equals(p.Id, depends, StringComparison.OrdinalIgnoreCase));
                     if (need)
                     {
-                        var obj = await new ListAvailablePlugins().Execute();
-                        var itemsProp = obj.GetType().GetProperty("items");
-                        var arr = itemsProp != null ? itemsProp.GetValue(obj) as System.Array : null;
-                        string depId = depends;
-                        object depItemObj = null;
-                        if (arr != null)
+                        var items = await new ListAvailablePlugins().Execute();
+                        var depItem = items.FirstOrDefault(x => string.Equals(x.Id, depends, StringComparison.OrdinalIgnoreCase));
+                        if (depItem == null)
                         {
-                            foreach (var it in arr)
-                            {
-                                var iid = GetPropString(it, "id");
-                                if (!string.IsNullOrWhiteSpace(iid) && string.Equals(iid, depId, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    depItemObj = it;
-                                    break;
-                                }
-                            }
-                        }
-                        if (depItemObj == null)
-                        {
-                            Log.Error("依赖未找到: {Dep}", depId);
+                            Log.Error("依赖未找到: {Dep}", depends);
                             return new { type = "install_plugin_error", message = "依赖未找到" };
                         }
-                        var depPayload = JsonSerializer.Serialize(new
-                        {
-                            plugin = new
-                            {
-                                id = GetPropString(depItemObj, "id") ?? string.Empty,
-                                name = GetPropString(depItemObj, "name") ?? string.Empty,
-                                version = GetPropString(depItemObj, "version") ?? string.Empty,
-                                downloadUrl = GetPropString(depItemObj, "downloadUrl") ?? string.Empty,
-                                depends = GetPropString(depItemObj, "depends") ?? string.Empty
-                            }
-                        });
-                        await Execute(depPayload);
+                        await Execute(depItem);
                     }
                 }
                 Log.Information("安装插件 {PluginId} {PluginName} {PluginVersion}", id, name, version);
@@ -102,16 +93,15 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 File.WriteAllBytes(path, bytes);
                 try { PluginManager.Instance.LoadPlugins(dir); } catch { }
                 var updPayload = new { type = "installed_plugins_updated" };
-                var items = PluginManager.Instance.Plugins.Values.Select(plugin => new {
+                var resultItems = PluginManager.Instance.Plugins.Values.Select(plugin => new {
                     identifier = plugin.Id,
                     name = plugin.Name,
                     version = plugin.Version,
                     description = plugin.Description,
                     author = plugin.Author,
-                    status = plugin.Status,
-                    waitingRestart = AppState.WaitRestartPlugins.ContainsKey(plugin.Id)
+                    status = plugin.Status
                 }).ToArray();
-                var listPayload = new { type = "installed_plugins", items };
+                var listPayload = new { type = "installed_plugins", items = resultItems };
                 return new object[] { updPayload, listPayload };
             }
             catch (Exception ex)
@@ -119,13 +109,6 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                 Log.Error(ex, "安装插件失败");
                 return new { type = "install_plugin_error", message = ex.Message };
             }
-        }
-
-        private static string GetPropString(object o, string name)
-        {
-            var p = o.GetType().GetProperty(name);
-            var v = p != null ? p.GetValue(o) : null;
-            return v != null ? v.ToString() : null;
         }
     }
 }

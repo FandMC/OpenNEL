@@ -35,7 +35,7 @@ namespace OpenNEL_WinUI
 
         public NotificationHost()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             this.Loaded += NotificationHost_Loaded;
         }
 

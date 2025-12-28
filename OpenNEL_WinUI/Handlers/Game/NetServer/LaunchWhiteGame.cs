@@ -27,6 +27,7 @@ using OpenNEL.WPFLauncher.Entities;
 using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
+using OpenNEL_WinUI.Entities.Web.NetGame;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.NetServer;
@@ -40,29 +41,29 @@ public class LaunchWhiteGame
         _progress = progress;
     }
 
-    public async Task<object> Execute(string accountId, string serverId, string serverName, string roleId)
+    public async Task<JoinGameResult> Execute(string accountId, string serverId, string serverName, string roleId)
     {
         if (string.IsNullOrWhiteSpace(accountId) || string.IsNullOrWhiteSpace(serverId) || string.IsNullOrWhiteSpace(roleId))
         {
-            return new { type = "start_error", message = "参数错误" };
+            return new JoinGameResult { Success = false, Message = "参数错误" };
         }
 
         var available = UserManager.Instance.GetAvailableUser(accountId);
         if (available == null)
         {
-            return new { type = "notlogin" };
+            return new JoinGameResult { NotLogin = true };
         }
 
         try
         {
             PathUtil.EnsureDirectoriesExist();
             var result = await LaunchAsync(available.UserId, available.AccessToken, serverId, serverName, roleId);
-            return result ? new { type = "launch_success" } : new { type = "start_error", message = "启动失败" };
+            return result ? new JoinGameResult { Success = true } : new JoinGameResult { Success = false, Message = "启动失败" };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "白端启动失败");
-            return new { type = "start_error", message = ex.Message };
+            return new JoinGameResult { Success = false, Message = ex.Message };
         }
     }
 

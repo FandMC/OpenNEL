@@ -40,7 +40,7 @@ namespace OpenNEL_WinUI
         DispatcherTimer _timer;
         public AdContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             InitializeAds();
             AdScroll.SizeChanged += AdScroll_SizeChanged;
             if (_ads.Count > 1)

@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Serilog;
@@ -28,23 +29,24 @@ namespace OpenNEL_WinUI.Handlers.Plugin
 {
     public class ListAvailablePlugins
     {
-        public async Task<object> Execute(string url = null)
+        private static readonly HttpClient Http = new();
+
+        public async Task<List<AvailablePluginItem>> Execute(string? url = null)
         {
             try
             {
-                var u = string.IsNullOrWhiteSpace(url) ? AppInfo.ApiBaseURL + "/v1/pluginlast" : url;
-                using var http = new HttpClient();
-                http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                var text = await http.GetStringAsync(u).ConfigureAwait(false);
+                var u = string.IsNullOrWhiteSpace(url) ? AppInfo.ApiBaseURL + "/v1/pluginlist" : url;
+                Http.DefaultRequestHeaders.Accept.Clear();
+                Http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                var text = await Http.GetStringAsync(u).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(text);
                 var itemsArr = GetArray(doc.RootElement);
-                var list = itemsArr.Select(Normalize).Where(x => x != null).ToArray();
-                return new { type = "available_plugins", items = list! };
+                return itemsArr.Select(Normalize).Where(x => x != null).ToList()!;
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "获取插件列表失败");
-                return new { type = "available_plugins", items = Array.Empty<object>() };
+                return new List<AvailablePluginItem>();
             }
         }
 
@@ -74,7 +76,7 @@ namespace OpenNEL_WinUI.Handlers.Plugin
             return Array.Empty<JsonElement>();
         }
 
-        private static object? Normalize(JsonElement el)
+        private static AvailablePluginItem? Normalize(JsonElement el)
         {
             if (el.ValueKind != JsonValueKind.Object) return null;
             var id = FirstString(el, "id", "identifier", "pluginId", "pid");
@@ -85,16 +87,16 @@ namespace OpenNEL_WinUI.Handlers.Plugin
             var publisher = FirstString(el, "publisher", "author", "vendor");
             var downloadUrl = FirstString(el, "downloadUrl", "url", "link", "href");
             var depends = FirstString(el, "depends", "dependency", "dep");
-            return new
+            return new AvailablePluginItem
             {
-                id = (id ?? string.Empty).ToUpperInvariant(),
-                name = name ?? string.Empty,
-                version = version ?? string.Empty,
-                logoUrl = (logoUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
-                shortDescription = shortDescription ?? string.Empty,
-                publisher = publisher ?? string.Empty,
-                downloadUrl = (downloadUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
-                depends = (depends ?? string.Empty).ToUpperInvariant()
+                Id = (id ?? string.Empty).ToUpperInvariant(),
+                Name = name ?? string.Empty,
+                Version = version ?? string.Empty,
+                LogoUrl = (logoUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
+                ShortDescription = shortDescription ?? string.Empty,
+                Publisher = publisher ?? string.Empty,
+                DownloadUrl = (downloadUrl ?? string.Empty).Replace("`", string.Empty).Trim(),
+                Depends = (depends ?? string.Empty).ToUpperInvariant()
             };
         }
 

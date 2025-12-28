@@ -20,56 +20,57 @@ using System.Linq;
 using OpenNEL.WPFLauncher.Entities.RentalGame;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Manager;
+using OpenNEL_WinUI.Entities.Web.RentalGame;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.RentalServer;
 
 public class OpenRentalServer
 {
-    public object Execute(string serverId)
+    public RentalServerRolesResult Execute(string serverId)
     {
         Log.Debug("[RentalServer] OpenRentalServer.Execute: serverId={ServerId}", serverId);
         var last = UserManager.Instance.GetLastAvailableUser();
         if (last == null)
         {
             Log.Debug("[RentalServer] OpenRentalServer: 用户未登录");
-            return new { type = "notlogin" };
+            return new RentalServerRolesResult { NotLogin = true };
         }
         if (string.IsNullOrWhiteSpace(serverId))
         {
-            return new { type = "server_roles_error", message = "参数错误" };
+            return new RentalServerRolesResult { Success = false, Message = "参数错误" };
         }
         try
         {
             if (AppState.Debug) Log.Information("打开租赁服: serverId={ServerId}, account={AccountId}", serverId, last.UserId);
             var entities = AppState.X19.GetRentalGameRolesList(last.UserId, last.AccessToken, serverId);
-            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            return new { type = "server_roles", items, serverId };
+            var items = entities.Data.Select(r => new RentalRoleItem { Id = r.Name, Name = r.Name }).ToList();
+            return new RentalServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "获取租赁服角色失败: serverId={ServerId}", serverId);
-            return new { type = "server_roles_error", message = "获取失败" };
+            return new RentalServerRolesResult { Success = false, Message = "获取失败" };
         }
     }
 
-    public object ExecuteForAccount(string accountId, string serverId)
+    public RentalServerRolesResult ExecuteForAccount(string accountId, string serverId)
     {
-        if (string.IsNullOrWhiteSpace(accountId)) return new { type = "server_roles_error", message = "参数错误" };
-        if (string.IsNullOrWhiteSpace(serverId)) return new { type = "server_roles_error", message = "参数错误" };
+        if (string.IsNullOrWhiteSpace(accountId)) return new RentalServerRolesResult { Success = false, Message = "参数错误" };
+        if (string.IsNullOrWhiteSpace(serverId)) return new RentalServerRolesResult { Success = false, Message = "参数错误" };
         try
         {
             var u = UserManager.Instance.GetAvailableUser(accountId);
-            if (u == null) return new { type = "notlogin" };
+            if (u == null) return new RentalServerRolesResult { NotLogin = true };
             if (AppState.Debug) Log.Information("打开租赁服: serverId={ServerId}, account={AccountId}", serverId, u.UserId);
             var entities = AppState.X19.GetRentalGameRolesList(u.UserId, u.AccessToken, serverId);
-            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            return new { type = "server_roles", items, serverId };
+            var items = entities.Data.Select(r => new RentalRoleItem { Id = r.Name, Name = r.Name }).ToList();
+            return new RentalServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "获取租赁服角色失败: serverId={ServerId}", serverId);
-            return new { type = "server_roles_error", message = "获取失败" };
+            return new RentalServerRolesResult { Success = false, Message = "获取失败" };
         }
     }
 }

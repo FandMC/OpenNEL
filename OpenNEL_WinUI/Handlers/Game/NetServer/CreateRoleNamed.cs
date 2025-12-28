@@ -20,6 +20,7 @@ using System.Linq;
 using OpenNEL_WinUI.type;
 using OpenNEL.WPFLauncher.Entities;
 using OpenNEL.WPFLauncher.Entities.NetGame;
+using OpenNEL_WinUI.Entities.Web.NetGame;
 using Serilog;
 using OpenNEL_WinUI.Manager;
 
@@ -27,26 +28,26 @@ namespace OpenNEL_WinUI.Handlers.Game.NetServer;
 
 public class CreateRoleNamed
 {
-    public object Execute(string serverId, string name)
+    public ServerRolesResult Execute(string serverId, string name)
     {
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new ServerRolesResult { NotLogin = true };
         if (string.IsNullOrWhiteSpace(serverId) || string.IsNullOrWhiteSpace(name))
         {
-            return new { type = "server_roles_error", message = "参数错误" };
+            return new ServerRolesResult { Success = false, Message = "参数错误" };
         }
         try
         {
             AppState.X19.CreateCharacter(last.UserId, last.AccessToken, serverId, name);
-            if(AppState.Debug)Log.Information("角色创建成功: serverId={ServerId}, name={Name}", serverId, name);
+            if (AppState.Debug) Log.Information("角色创建成功: serverId={ServerId}, name={Name}", serverId, name);
             Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
-            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            return new { type = "server_roles", items, serverId, createdName = name };
+            var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
+            return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "角色创建失败: serverId={ServerId}, name={Name}", serverId, name);
-            return new { type = "server_roles_error", message = "创建角色失败" };
+            return new ServerRolesResult { Success = false, Message = "创建角色失败" };
         }
     }
 }

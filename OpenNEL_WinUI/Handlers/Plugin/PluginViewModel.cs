@@ -29,20 +29,6 @@ namespace OpenNEL_WinUI.Handlers.Plugin
         public string Author { get; set; }
         public string Status { get; set; }
 
-        private bool _isWaitingRestart;
-        public bool IsWaitingRestart
-        {
-            get => _isWaitingRestart;
-            set
-            {
-                if (_isWaitingRestart != value)
-                {
-                    _isWaitingRestart = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
         private bool _needUpdate;
         public bool NeedUpdate
         {

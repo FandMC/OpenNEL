@@ -230,7 +230,7 @@ namespace OpenNEL_WinUI
                 }
                 if (hasHp && !hasBase)
                 {
-                    var d2 = new ContentDialog
+                    var d2 = new ThemedContentDialog
                     {
                         XamlRoot = RootGrid.XamlRoot,
                         Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
@@ -240,7 +240,6 @@ namespace OpenNEL_WinUI
                         CloseButtonText = "取消",
                         DefaultButton = ContentDialogButton.Primary
                     };
-                    d2.RequestedTheme = RootGrid.RequestedTheme;
                     d2.PrimaryButtonClick += async (s, e) =>
                     {
                         e.Cancel = true;
@@ -273,7 +272,7 @@ namespace OpenNEL_WinUI
                 }
                 if (!hasHp && !hasBase && !System.IO.File.Exists("setting.json"))
                 {
-                    var d = new ContentDialog
+                    var d = new ThemedContentDialog
                     {
                         XamlRoot = RootGrid.XamlRoot,
                         Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
@@ -283,7 +282,6 @@ namespace OpenNEL_WinUI
                         CloseButtonText = "取消",
                         DefaultButton = ContentDialogButton.Primary
                     };
-                    d.RequestedTheme = RootGrid.RequestedTheme;
                     d.PrimaryButtonClick += async (s, e) =>
                     {
                         e.Cancel = true;

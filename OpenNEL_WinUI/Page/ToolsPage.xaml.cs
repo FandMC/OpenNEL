@@ -37,7 +37,7 @@ namespace OpenNEL_WinUI
         DispatcherTimer _flushTimer;
         public ToolsPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             try
             {
                 var host = Dns.GetHostEntry(Dns.GetHostName());

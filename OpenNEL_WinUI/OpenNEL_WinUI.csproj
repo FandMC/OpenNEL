@@ -69,6 +69,10 @@
     <ProjectReference Include="..\OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" />
     <ProjectReference Include="..\OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" />
     <ProjectReference Include="..\OpenNEL.SDK\OpenNEL.SDK.csproj" />
+    <ProjectReference Include="..\OpenNEL.Base1200\OpenNEL.Base1200.csproj" />
+    <ProjectReference Include="..\OpenNEL.Base108X\OpenNEL.Base108X.csproj" />
+    <ProjectReference Include="..\OpenNEL.Base1122\OpenNEL.Base1122.csproj" />
+    <ProjectReference Include="..\OpenNEL.IRC\OpenNEL.IRC.csproj" />
   </ItemGroup>
   <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging

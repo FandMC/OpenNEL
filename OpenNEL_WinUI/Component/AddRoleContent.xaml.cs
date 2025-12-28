@@ -31,7 +31,7 @@ namespace OpenNEL_WinUI
 
         public AddRoleContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             try
             {
                 var mode = SettingManager.Instance.Get().ThemeMode?.Trim().ToLowerInvariant() ?? "system";

@@ -32,7 +32,7 @@ namespace OpenNEL_WinUI
 
         public GamesPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             this.DataContext = this;
             this.Loaded += GamesPage_Loaded;
         }

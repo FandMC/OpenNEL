@@ -35,14 +35,14 @@ namespace OpenNEL_WinUI
 
         public PluginsPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             LoadPlugins();
         }
 
         private void LoadPlugins()
         {
             Plugins.Clear();
-            var list = PluginHandler.GetInstalledPlugins();
+            var list = new ListInstalledPlugins().Execute();
             foreach (var item in list)
             {
                 Plugins.Add(item);
@@ -52,7 +52,7 @@ namespace OpenNEL_WinUI
 
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
-            PluginHandler.RestartGateway();
+            new RestartGateway().Execute();
         }
 
         private void UpdatePluginButton_Click(object sender, RoutedEventArgs e)
@@ -68,9 +68,8 @@ namespace OpenNEL_WinUI
             {
                 try
                 {
-                    PluginHandler.UninstallPlugin(plugin.Id);
-                    
-                    plugin.IsWaitingRestart = true;
+                    new UninstallPlugin().Execute(plugin.Id);
+                    Plugins.Remove(plugin);
                 }
                 catch (Exception ex)
                 {

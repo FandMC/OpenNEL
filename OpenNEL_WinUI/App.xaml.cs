@@ -20,17 +20,22 @@ using System.IO;
 using Microsoft.UI.Xaml;
 using Serilog;
 using System.Threading.Tasks;
+using Codexus.Base1200.Plugin;
+using Codexus.Base1122.Plugin;
+using Codexus.Base108X.Plugin;
 using OpenNEL.SDK.Manager;
 using OpenNEL.PluginLoader.Manager;
-using OpenNEL.GameLauncher.Utils;
 using OpenNEL.Core.Utils;
 using OpenNEL.Interceptors;
+using OpenNEL.SDK.Event;
+using OpenNEL.IRC;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.Manager;
 using Codexus.OpenSDK;
 using Codexus.OpenSDK.Yggdrasil;
 using Codexus.OpenSDK.Entities.Yggdrasil;
+using OpenNEL.SDK.Extensions;
 using UpdaterService = OpenNEL_WinUI.Updater.Updater;
 
 namespace OpenNEL_WinUI
@@ -63,7 +68,7 @@ namespace OpenNEL_WinUI
                     await AppState.Services.X19.InitializeDeviceAsync();
                     await Utils.Hwid.ReportAsync();
                     await UpdaterService.UpdateAsync(AppInfo.AppVersion);
-
+                    await LoadBase();
                     await InitializeSystemComponentsAsync();
                 }
                 catch (Exception ex)
@@ -73,6 +78,13 @@ namespace OpenNEL_WinUI
             });
         }
 
+        static async Task LoadBase()
+        {
+            Log.Information(Base1200.PluginChannel+"已加载");
+            Log.Information(Base1122.PluginChannel+"已加载");
+            Log.Information(Base108X.PluginChannel+"已加载");
+        }
+        
         void ConfigureLogger()
         {
             try
@@ -104,12 +116,17 @@ namespace OpenNEL_WinUI
 
         static async Task InitializeSystemComponentsAsync()
         {
-            var pluginDir = OpenNEL_WinUI.Utils.FileUtil.GetPluginDirectory();
+            var pluginDir = Utils.FileUtil.GetPluginDirectory();
             Directory.CreateDirectory(pluginDir);
             UserManager.Instance.ReadUsersFromDisk();
             Interceptor.EnsureLoaded();
             PacketManager.Instance.RegisterPacketFromAssembly(typeof(App).Assembly);
+            PacketManager.Instance.RegisterPacketFromAssembly(typeof(Base1200).Assembly);
+            PacketManager.Instance.RegisterPacketFromAssembly(typeof(Base1122).Assembly);
+            PacketManager.Instance.RegisterPacketFromAssembly(typeof(Base108X).Assembly);
+            PacketManager.Instance.RegisterPacketFromAssembly(typeof(OpenNEL.IRC.IrcManager).Assembly);
             PacketManager.Instance.EnsureRegistered();
+            RegisterIrcHandler();
             _ = Task.Run(() =>
             {
                 try
@@ -138,6 +155,14 @@ namespace OpenNEL_WinUI
                 CrcSalt = crcSalt
             });
             return new Services(c4399, x19, yggdrasil);
+        }
+
+        static void RegisterIrcHandler()
+        {
+            IrcEventHandler.Register(
+                () => AuthManager.Instance.Token ?? "",
+                Utils.Hwid.Compute()
+            );
         }
         
         private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)

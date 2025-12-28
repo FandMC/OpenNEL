@@ -29,7 +29,7 @@ namespace OpenNEL_WinUI
 
         public CaptchaContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             try
             {
                 var mode = SettingManager.Instance.Get().ThemeMode?.Trim().ToLowerInvariant() ?? "system";

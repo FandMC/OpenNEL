@@ -40,7 +40,7 @@ namespace OpenNEL_WinUI
 
         public AccountListContent()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
 
         ElementTheme GetAppTheme()
@@ -53,7 +53,7 @@ namespace OpenNEL_WinUI
 
         ContentDialog CreateDialog(object content, string title)
         {
-            var d = new ContentDialog
+            var d = new ThemedContentDialog
             {
                 XamlRoot = this.XamlRoot,
                 Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
@@ -63,7 +63,6 @@ namespace OpenNEL_WinUI
                 CloseButtonText = "取消",
                 DefaultButton = ContentDialogButton.Primary
             };
-            d.RequestedTheme = GetAppTheme();
             return d;
         }
 

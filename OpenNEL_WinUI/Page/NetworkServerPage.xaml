@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:OpenNEL_WinUI"
+    xmlns:netgame="using:OpenNEL_WinUI.Entities.Web.NetGame"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -57,7 +58,7 @@
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
             <GridView.ItemTemplate>
-                <DataTemplate x:DataType="local:ServerItem">
+                <DataTemplate x:DataType="netgame:ServerItem">
                     <Grid Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" MinWidth="240">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>

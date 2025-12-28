@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Text.Json;
 using OpenNEL.PluginLoader.Manager;
-using OpenNEL_WinUI.type;
 using Serilog;
 using System.Net.Http;
 using System.IO;
@@ -62,7 +61,7 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                     {
                         PluginManager.Instance.UninstallPlugin(pluginId);
                     }
-                    AppState.WaitRestartPlugins[pluginId] = true;
+                    PluginManager.Instance.LoadPlugins(dir);
                 }
                 catch { }
                 var updPayload = new { type = "installed_plugins_updated" };
@@ -72,8 +71,7 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                     version = plugin.Version,
                     description = plugin.Description,
                     author = plugin.Author,
-                    status = plugin.Status,
-                    waitingRestart = AppState.WaitRestartPlugins.ContainsKey(plugin.Id)
+                    status = plugin.Status
                 }).ToArray();
                 var listPayload = new { type = "installed_plugins", items };
                 return new object[] { updPayload, listPayload };

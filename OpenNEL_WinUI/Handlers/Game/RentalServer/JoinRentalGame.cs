@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
+using OpenNEL_WinUI.Entities.Web.RentalGame;
 using OpenNEL.SDK.Entities;
 using OpenNEL.GameLauncher.Services.Java;
 using OpenNEL.GameLauncher.Utils;
@@ -35,24 +36,13 @@ using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.RentalServer;
 
-public class EntityJoinRentalGame
-{
-    public string ServerId { get; set; } = string.Empty;
-    public string ServerName { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
-    public string GameId { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string McVersion { get; set; } = string.Empty;
-    public EntitySocks5? Socks5 { get; set; }
-}
-
 public class JoinRentalGame
 {
     private EntityJoinRentalGame? _request;
     private string _lastIp = string.Empty;
     private int _lastPort;
 
-    public async Task<object> Execute(EntityJoinRentalGame request)
+    public async Task<JoinRentalGameResult> Execute(EntityJoinRentalGame request)
     {
         _request = request;
         var serverId = _request.ServerId;
@@ -61,21 +51,21 @@ public class JoinRentalGame
         var password = _request.Password;
         var mcVersion = _request.McVersion;
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new JoinRentalGameResult { NotLogin = true };
         if (string.IsNullOrWhiteSpace(serverId) || string.IsNullOrWhiteSpace(role))
         {
-            return new { type = "start_error", message = "参数错误" };
+            return new JoinRentalGameResult { Success = false, Message = "参数错误" };
         }
         try
         {
             var ok = await StartAsync(serverId, serverName, role, password, mcVersion);
-            if (!ok) return new { type = "start_error", message = "启动失败" };
-            return new { type = "channels_updated", ip = _lastIp, port = _lastPort };
+            if (!ok) return new JoinRentalGameResult { Success = false, Message = "启动失败" };
+            return new JoinRentalGameResult { Success = true, Ip = _lastIp, Port = _lastPort };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "加入租赁服失败");
-            return new { type = "start_error", message = ex.Message };
+            return new JoinRentalGameResult { Success = false, Message = ex.Message };
         }
     }
 

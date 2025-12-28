@@ -44,7 +44,7 @@ namespace OpenNEL_WinUI
 
         public AboutPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             try
             {
                 var asm = typeof(AboutPage).Assembly;

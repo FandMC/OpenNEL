@@ -20,53 +20,54 @@ using System.Linq;
 using OpenNEL.WPFLauncher.Entities.NetGame;
 using OpenNEL.WPFLauncher.Entities;
 using OpenNEL_WinUI.type;
-using OpenNEL_WinUI.Utils; 
+using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.Manager;
+using OpenNEL_WinUI.Entities.Web.NetGame;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.NetServer;
 
 public class OpenServer
 {
-    public object Execute(string serverId)
+    public ServerRolesResult Execute(string serverId)
     {
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new ServerRolesResult { NotLogin = true };
         if (string.IsNullOrWhiteSpace(serverId))
         {
-            return new { type = "server_roles_error", message = "参数错误" };
+            return new ServerRolesResult { Success = false, Message = "参数错误" };
         }
         try
         {
-            if(AppState.Debug)Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, last.UserId);
+            if (AppState.Debug) Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, last.UserId);
             Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
-            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            return new { type = "server_roles", items, serverId };
+            var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
+            return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "获取服务器角色失败: serverId={ServerId}", serverId);
-            return new { type = "server_roles_error", message = "获取失败" };
+            return new ServerRolesResult { Success = false, Message = "获取失败" };
         }
     }
 
-    public object ExecuteForAccount(string accountId, string serverId)
+    public ServerRolesResult ExecuteForAccount(string accountId, string serverId)
     {
-        if (string.IsNullOrWhiteSpace(accountId)) return new { type = "server_roles_error", message = "参数错误" };
-        if (string.IsNullOrWhiteSpace(serverId)) return new { type = "server_roles_error", message = "参数错误" };
+        if (string.IsNullOrWhiteSpace(accountId)) return new ServerRolesResult { Success = false, Message = "参数错误" };
+        if (string.IsNullOrWhiteSpace(serverId)) return new ServerRolesResult { Success = false, Message = "参数错误" };
         try
         {
             var u = UserManager.Instance.GetAvailableUser(accountId);
-            if (u == null) return new { type = "notlogin" };
-            if(AppState.Debug)Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, u.UserId);
+            if (u == null) return new ServerRolesResult { NotLogin = true };
+            if (AppState.Debug) Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, u.UserId);
             Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(u.UserId, u.AccessToken, serverId);
-            var items = entities.Data.Select(r => new { id = r.Name, name = r.Name }).ToArray();
-            return new { type = "server_roles", items, serverId };
+            var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
+            return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "获取服务器角色失败: serverId={ServerId}", serverId);
-            return new { type = "server_roles_error", message = "获取失败" };
+            return new ServerRolesResult { Success = false, Message = "获取失败" };
         }
     }
 }

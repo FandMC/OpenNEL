@@ -38,7 +38,4 @@ public class EntityPluginsResponse
 
 	[JsonPropertyName("status")]
 	public required string PluginStatus { get; set; }
-
-	[JsonPropertyName("waiting_restart")]
-	public required bool PluginWaitingRestart { get; set; }
 }

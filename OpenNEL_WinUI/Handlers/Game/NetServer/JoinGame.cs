@@ -38,31 +38,31 @@ namespace OpenNEL_WinUI.Handlers.Game.NetServer;
 public class JoinGame
 {
     private EntityJoinGame? _request;
-    private string _lastIp;
+    private string _lastIp = string.Empty;
     private int _lastPort;
 
-    public async Task<object> Execute(EntityJoinGame request)
+    public async Task<JoinGameResult> Execute(EntityJoinGame request)
     {
         _request = request;
         var serverId = _request.ServerId;
         var serverName = _request.ServerName;
         var role = _request.Role;
         var last = UserManager.Instance.GetLastAvailableUser();
-        if (last == null) return new { type = "notlogin" };
+        if (last == null) return new JoinGameResult { NotLogin = true };
         if (string.IsNullOrWhiteSpace(serverId) || string.IsNullOrWhiteSpace(role))
         {
-            return new { type = "start_error", message = "参数错误" };
+            return new JoinGameResult { Success = false, Message = "参数错误" };
         }
         try
         {
             var ok = await StartAsync(serverId!, serverName, role!);
-            if (!ok) return new { type = "start_error", message = "启动失败" };
-            return new { type = "channels_updated", ip = _lastIp, port = _lastPort };
+            if (!ok) return new JoinGameResult { Success = false, Message = "启动失败" };
+            return new JoinGameResult { Success = true, Ip = _lastIp, Port = _lastPort };
         }
         catch (Exception ex)
         {
             Log.Error(ex, "启动失败");
-            return new { type = "start_error", message = "启动失败" };
+            return new JoinGameResult { Success = false, Message = "启动失败" };
         }
     }
 

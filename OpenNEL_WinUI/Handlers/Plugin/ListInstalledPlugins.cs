@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Collections.Generic;
 using OpenNEL.PluginLoader.Manager;
-using OpenNEL_WinUI.type;
 
 namespace OpenNEL_WinUI.Handlers.Plugin
 {
@@ -36,7 +35,6 @@ namespace OpenNEL_WinUI.Handlers.Plugin
                     Version = plugin.Version,
                     Author = plugin.Author,
                     Status = plugin.Status,
-                    IsWaitingRestart = AppState.WaitRestartPlugins.ContainsKey(plugin.Id),
                     NeedUpdate = false
                 });
             }

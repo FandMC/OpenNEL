@@ -32,7 +32,4 @@ public class EntityQueryInstall
 
 	[JsonPropertyName("installed")]
 	public string PluginInstalledVersion { get; set; } = string.Empty;
-
-	[JsonPropertyName("restart")]
-	public bool PluginIsWaitingRestart { get; set; }
 }
