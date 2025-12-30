@@ -16,6 +16,13 @@ public class PluginLoaderService
 {
     public static string[] PluginExtensions { get; set; } = { ".ug", ".dll", ".UG" };
 
+    private static readonly HashSet<string> BuiltInPluginIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "36D701B3-6E98-3E92-AF53-C4EC327B3A71", 
+        "716925E5-FEEE-8199-5A7A-855D8E6BD85F",
+        "A03D8FB4-2672-2A94-49DB-D5C0A0F447DB" 
+    };
+
     private readonly HashSet<string> _loadedFiles = new();
     private readonly Dictionary<string, PluginState> _plugins;
 
@@ -110,6 +117,12 @@ public class PluginLoaderService
 
             var pluginId = attribute.Id.ToUpper();
             if (_plugins.ContainsKey(pluginId)) continue;
+
+            if (BuiltInPluginIds.Contains(pluginId))
+            {
+                Log.Debug("跳过内置插件 {PluginName} ({PluginId})，已包含在项目中", attribute.Name, pluginId);
+                continue;
+            }
 
             var plugin = CreatePluginInstance(type);
             if (plugin == null) continue;
