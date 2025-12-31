@@ -18,13 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 namespace OpenNEL_WinUI.type;
 class AppInfo
 {
-    public const string AppVersion = "2.0 - pre2";
+    public const string AppVersion = "2.0";
 
     public const string GithubUrL = "https://github.com/FandMC/OpenNEL";
     
     public const string QQGroup = "824115841";
     public const string VetaProcessKeyword = "Veta";
-    public const string HwidEndpoint = ApiBaseURL + "/v1/hwid";
-    public const string CrcSaltEndpoint = ApiBaseURL + "/v1/crcsalt";
     public const string ApiBaseURL = "https://api.fandmc.cn";
 }

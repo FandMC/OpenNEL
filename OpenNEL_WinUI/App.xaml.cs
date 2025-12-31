@@ -54,14 +54,11 @@ namespace OpenNEL_WinUI
                 {
                     ConfigureLogger();
                     AppState.Debug = Debug.Get();
-                    AppState.AutoDisconnectOnBan = Manager.SettingManager.Instance.Get().AutoDisconnectOnBan;
-                    Log.Information("OpenNEL github: {github}", AppInfo.GithubUrL);
-                    Log.Information("版本: {version}", AppInfo.AppVersion);
-                    Log.Information("QQ群: {qqgroup}", AppInfo.QQGroup);
+                    AppState.AutoDisconnectOnBan = SettingManager.Instance.Get().AutoDisconnectOnBan;
+                    KillVeta.Run();
                     AppState.Services = await CreateServicesAsync();
                     await AppState.Services.X19.InitializeDeviceAsync();
-                    await Utils.Hwid.ReportAsync();
-                    await UpdaterService.UpdateAsync(AppInfo.AppVersion);
+                    // await UpdaterService.UpdateAsync(AppInfo.AppVersion);
                     await InitializeSystemComponentsAsync();
                 }
                 catch (Exception ex)

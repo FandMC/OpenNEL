@@ -27,28 +27,4 @@ namespace OpenNEL_WinUI.Utils;
 internal static class Hwid
 {
     public static string Compute() => CoreHwid.Compute();
-
-    public static async Task<string?> ReportAsync(string? hwid = null, string? endpoint = null)
-    {
-        try
-        {
-            var h = hwid ?? Compute();
-            var ip = CoreHwid.GetLocalIp();
-            var url = endpoint ?? AppInfo.HwidEndpoint;
-            using var client = new HttpClient();
-            var payload = "{\"hwid\":\"" + h + "\",\"ip\":\"" + ip + "\"}";
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-            var resp = await client.PostAsync(url, content);
-            var text = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode)
-            {
-                return null;
-            }
-            return text;
-        }
-        catch (Exception ex)
-        {
-            return null;
-        }
-    }
 }

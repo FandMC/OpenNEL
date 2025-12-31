@@ -100,7 +100,10 @@ namespace OpenNEL_WinUI
             Servers.Clear();
             _hasMore = r.HasMore;
 
-            Servers.Add(new ServerItem { EntityId = "77114517833647104", Name = "花雨庭", ImageUrl = string.Empty });
+            if (_page == 1 && DateTime.Now <= new DateTime(2026, 1, 5))
+            {
+                Servers.Add(new ServerItem { EntityId = "77114517833647104", Name = "花雨庭(2026.1.5 R.I.P)", ImageUrl = string.Empty });
+            }
 
             var limiter = new System.Threading.SemaphoreSlim(6);
             foreach (var item in r.Items)

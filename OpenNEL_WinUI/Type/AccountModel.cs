@@ -58,10 +58,6 @@ namespace OpenNEL_WinUI
             set { _alias = value; OnPropertyChanged(); }
         }
 
-        public string Cookie { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
