@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.IO;
 using Serilog;
-using System.Text;
 using Windows.Storage;
 
 namespace OpenNEL_WinUI.Utils;

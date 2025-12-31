@@ -62,16 +62,12 @@
     <ProjectReference Include="..\Codexus.OpenSDK\Codexus.OpenSDK.csproj" />
     <ProjectReference Include="..\OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" />
     <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
-    <ProjectReference Include="..\OpenNEL.Com4399\OpenNEL.Com4399.csproj" />
     <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
     <ProjectReference Include="..\OpenNEL.G79\OpenNEL.G79.csproj" />
     <ProjectReference Include="..\OpenNEL.Pc4399\OpenNEL.Pc4399.csproj" />
     <ProjectReference Include="..\OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" />
     <ProjectReference Include="..\OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" />
     <ProjectReference Include="..\OpenNEL.SDK\OpenNEL.SDK.csproj" />
-    <ProjectReference Include="..\OpenNEL.Base1200\OpenNEL.Base1200.csproj" />
-    <ProjectReference Include="..\OpenNEL.Base108X\OpenNEL.Base108X.csproj" />
-    <ProjectReference Include="..\OpenNEL.Base1122\OpenNEL.Base1122.csproj" />
     <ProjectReference Include="..\OpenNEL.IRC\OpenNEL.IRC.csproj" />
   </ItemGroup>
   <!--

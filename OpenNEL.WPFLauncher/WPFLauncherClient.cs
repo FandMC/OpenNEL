@@ -1,7 +1,28 @@
+/*
+<OpenNEL>
+Copyright (C) <2025>  <OpenNEL>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using OpenNEL.Core.Cipher;
 using OpenNEL.Core.Http;
 using OpenNEL.Core.Utils;
@@ -16,674 +37,365 @@ using OpenNEL.WPFLauncher.Entities.RentalGame;
 
 namespace OpenNEL.WPFLauncher;
 
-public class WPFLauncherClient : IDisposable
+public sealed class WPFLauncherClient : IDisposable
 {
-    private static readonly HttpWrapper Http = new();
-    private readonly HttpWrapper _client;
+    private readonly record struct Endpoints(string Lobby, string Core, string Api, string Gateway, string Rental, string Patch);
+    private static readonly Endpoints Urls = new(
+        "https://x19mclobt.nie.netease.com",
+        "https://x19obtcore.nie.netease.com:8443",
+        "https://x19apigatewayobt.nie.netease.com",
+        "https://x19apigatewayobt.nie.netease.com",
+        "https://x19mclobt.nie.netease.com",
+        "https://x19.update.netease.com");
+
+    private static readonly HttpWrapper SharedHttp = new();
+    private static readonly JsonSerializerOptions JsonOpts = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    private static readonly JsonSerializerOptions EnumOpts = new() { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
+
+    private readonly HttpWrapper _lobby;
     private readonly HttpWrapper _core;
-    private readonly HttpWrapper _game;
-    private readonly HttpWrapper _gateway;
-    private readonly HttpWrapper _rental;
-    private readonly MgbSdkClient _sdk = new("x19");
-
-    private static readonly JsonSerializerOptions DefaultOptions = new()
-    {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
-
-    private static readonly JsonSerializerOptions EnumOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
+    private readonly HttpWrapper _api;
+    private readonly HttpWrapper _gw;
+    private readonly HttpWrapper _rent;
+    private readonly MgbSdkClient _mgb;
+    private bool _disposed;
 
     public MPayClient MPay { get; }
 
     public WPFLauncherClient()
     {
-        MPay = new MPayClient("aecfrxodyqaaaajp-g-x19", GetLatestVersionAsync().GetAwaiter().GetResult());
-        var userAgent = "WPFLauncher/" + MPay.GameVersion;
-        _client = new HttpWrapper("https://x19mclobt.nie.netease.com", builder => builder.UserAgent(userAgent));
-        _core = new HttpWrapper("https://x19obtcore.nie.netease.com:8443", builder => builder.UserAgent(userAgent));
-        _game = new HttpWrapper("https://x19apigatewayobt.nie.netease.com", builder => builder.UserAgent(userAgent));
-        _gateway = new HttpWrapper("https://x19apigatewayobt.nie.netease.com", builder => builder.UserAgent(userAgent));
-        _rental = new HttpWrapper("https://x19mclobt.nie.netease.com", builder => builder.UserAgent(userAgent));
+        var ver = ResolveLatestVersion().GetAwaiter().GetResult();
+        MPay = new MPayClient("aecfrxodyqaaaajp-g-x19", ver);
+        var ua = $"WPFLauncher/{ver}";
+        _lobby = new HttpWrapper(Urls.Lobby, b => b.UserAgent(ua));
+        _core = new HttpWrapper(Urls.Core, b => b.UserAgent(ua));
+        _api = new HttpWrapper(Urls.Api, b => b.UserAgent(ua));
+        _gw = new HttpWrapper(Urls.Gateway, b => b.UserAgent(ua));
+        _rent = new HttpWrapper(Urls.Rental, b => b.UserAgent(ua));
+        _mgb = new MgbSdkClient("x19");
     }
 
     public void Dispose()
     {
-        Http.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        SharedHttp.Dispose();
         _core.Dispose();
-        _game.Dispose();
+        _api.Dispose();
         MPay.Dispose();
-        _gateway.Dispose();
-        _client.Dispose();
-        _rental.Dispose();
-        _sdk.Dispose();
+        _gw.Dispose();
+        _lobby.Dispose();
+        _rent.Dispose();
+        _mgb.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    public static string GetUserAgent()
+    public static string GetUserAgent() => $"WPFLauncher/{ResolveLatestVersion().GetAwaiter().GetResult()}";
+
+    private static async Task<Dictionary<string, EntityPatchVersion>> FetchPatchMap()
     {
-        return "WPFLauncher/" + GetLatestVersionAsync().GetAwaiter().GetResult();
+        var raw = await (await SharedHttp.GetAsync($"{Urls.Patch}/pl/x19_java_patchlist")).Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<Dictionary<string, EntityPatchVersion>>("{" + raw[..raw.LastIndexOf(',')] + "}")!;
     }
 
-    #region Version & Login
+    public static async Task<string> GetLatestVersionAsync() => (await FetchPatchMap()).Keys.Last();
+    private static Task<string> ResolveLatestVersion() => GetLatestVersionAsync();
 
-    private static async Task<Dictionary<string, EntityPatchVersion>> GetPatchVersionsAsync()
-    {
-        var content = await (await Http.GetAsync("https://x19.update.netease.com/pl/x19_java_patchlist")).Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<Dictionary<string, EntityPatchVersion>>("{" + content[..content.LastIndexOf(',')] + "}")!;
-    }
+    public Task<EntityMPayUserResponse> LoginWithEmailAsync(string email, string password) => MPay.LoginWithEmailAsync(email, password);
 
-    public static async Task<string> GetLatestVersionAsync()
+    public static EntityX19CookieRequest GenerateCookie(EntityMPayUserResponse user, EntityDevice device) => new()
     {
-        return (await GetPatchVersionsAsync()).Keys.Last();
-    }
-
-    public async Task<EntityMPayUserResponse> LoginWithEmailAsync(string email, string password)
-    {
-        return await MPay.LoginWithEmailAsync(email, password);
-    }
-
-    public static EntityX19CookieRequest GenerateCookie(EntityMPayUserResponse user, EntityDevice device)
-    {
-        return new EntityX19CookieRequest
+        Json = JsonSerializer.Serialize(new EntityX19Cookie
         {
-            Json = JsonSerializer.Serialize(new EntityX19Cookie
-            {
-                SdkUid = user.User.Id,
-                SessionId = user.User.Token,
-                Udid = Guid.NewGuid().ToString("N").ToUpper(),
-                DeviceId = device.Id,
-                AimInfo = "{\"aim\":\"127.0.0.1\",\"country\":\"CN\",\"tz\":\"+0800\",\"tzid\":\"\"}"
-            }, DefaultOptions)
-        };
+            SdkUid = user.User.Id,
+            SessionId = user.User.Token,
+            Udid = Guid.NewGuid().ToString("N").ToUpper(),
+            DeviceId = device.Id,
+            AimInfo = "{\"aim\":\"127.0.0.1\",\"country\":\"CN\",\"tz\":\"+0800\",\"tzid\":\"\"}"
+        }, JsonOpts)
+    };
+
+    public (EntityAuthenticationOtp, string) LoginWithCookie(string cookie) => PerformCookieLogin(cookie).GetAwaiter().GetResult();
+    public (EntityAuthenticationOtp, string) LoginWithCookie(EntityX19CookieRequest cookie) => PerformCookieLogin(cookie).GetAwaiter().GetResult();
+
+    private async Task<(EntityAuthenticationOtp, string)> PerformCookieLogin(string raw)
+    {
+        EntityX19CookieRequest req;
+        try { req = JsonSerializer.Deserialize<EntityX19CookieRequest>(raw)!; }
+        catch { req = new EntityX19CookieRequest { Json = raw }; }
+        return await PerformCookieLogin(req);
     }
 
-    public (EntityAuthenticationOtp, string) LoginWithCookie(string cookie)
+    private async Task<(EntityAuthenticationOtp, string)> PerformCookieLogin(EntityX19CookieRequest req)
     {
-        return LoginWithCookieAsync(cookie).GetAwaiter().GetResult();
+        var parsed = JsonSerializer.Deserialize<EntityX19Cookie>(req.Json)!;
+        if (parsed.LoginChannel != "netease") await _mgb.AuthSessionAsync(req.Json);
+        var otp = await RequestOtpToken(req);
+        var auth = await CompleteAuthentication(req, otp);
+        await InterConnClient.LoginStart(auth.EntityId, auth.Token);
+        return (auth, parsed.LoginChannel);
     }
 
-    public (EntityAuthenticationOtp, string) LoginWithCookie(EntityX19CookieRequest cookie)
+    private async Task<EntityLoginOtp> RequestOtpToken(EntityX19CookieRequest req)
     {
-        return LoginWithCookieAsync(cookie).GetAwaiter().GetResult();
+        var resp = await (await _core.PostAsync("/login-otp", JsonSerializer.Serialize(req, JsonOpts))).Content.ReadAsStringAsync();
+        var wrap = JsonSerializer.Deserialize<Entity<JsonElement?>>(resp) ?? throw new Exception($"Parse failed: {resp}");
+        if (wrap.Code != 0 || !wrap.Data.HasValue) throw new Exception($"OTP error: {wrap.Message}");
+        return JsonSerializer.Deserialize<EntityLoginOtp>(wrap.Data.Value.GetRawText())!;
     }
 
-    private async Task<(EntityAuthenticationOtp, string)> LoginWithCookieAsync(string cookie)
+    private async Task<EntityAuthenticationOtp> CompleteAuthentication(EntityX19CookieRequest req, EntityLoginOtp otp)
     {
-        EntityX19CookieRequest cookieRequest;
-        try
-        {
-            cookieRequest = JsonSerializer.Deserialize<EntityX19CookieRequest>(cookie)!;
-        }
-        catch (Exception)
-        {
-            cookieRequest = new EntityX19CookieRequest { Json = cookie };
-        }
-        return await LoginWithCookieAsync(cookieRequest);
-    }
-
-    private async Task<(EntityAuthenticationOtp, string)> LoginWithCookieAsync(EntityX19CookieRequest cookie)
-    {
-        var entity = JsonSerializer.Deserialize<EntityX19Cookie>(cookie.Json)!;
-        if (entity.LoginChannel != "netease")
-        {
-            await _sdk.AuthSessionAsync(cookie.Json);
-        }
-        var user = await AuthenticationOtpAsync(cookie, await LoginOtpAsync(cookie));
-        await InterConnClient.LoginStart(user.EntityId, user.Token);
-        return (user, entity.LoginChannel);
-    }
-
-    private async Task<EntityLoginOtp> LoginOtpAsync(EntityX19CookieRequest cookieRequest)
-    {
-        var content = await (await _core.PostAsync("/login-otp", JsonSerializer.Serialize(cookieRequest, DefaultOptions))).Content.ReadAsStringAsync();
-        var entity = JsonSerializer.Deserialize<Entity<JsonElement?>>(content);
-        if (entity == null)
-            throw new Exception("Failed to deserialize: " + content);
-        if (entity.Code != 0 || !entity.Data.HasValue)
-            throw new Exception("Failed to deserialize: " + entity.Message);
-        return JsonSerializer.Deserialize<EntityLoginOtp>(entity.Data.Value.GetRawText())!;
-    }
-
-    private async Task<EntityAuthenticationOtp> AuthenticationOtpAsync(EntityX19CookieRequest cookieRequest, EntityLoginOtp otp)
-    {
-        var entityX19Cookie = JsonSerializer.Deserialize<EntityX19Cookie>(cookieRequest.Json)!;
+        var cookie = JsonSerializer.Deserialize<EntityX19Cookie>(req.Json)!;
         var disk = StringGenerator.GenerateHexString(4).ToUpper();
-        var detail = new EntityAuthenticationDetail
+        var detail = new EntityAuthenticationDetail { Udid = "0000000000000000" + disk, AppVersion = MPay.GameVersion, PayChannel = cookie.AppChannel, Disk = disk };
+        var payload = JsonSerializer.Serialize(new EntityAuthenticationData
         {
-            Udid = "0000000000000000" + disk,
-            AppVersion = MPay.GameVersion,
-            PayChannel = entityX19Cookie.AppChannel,
-            Disk = disk
-        };
-        var data = JsonSerializer.Serialize(new EntityAuthenticationData
-        {
-            SaData = JsonSerializer.Serialize(detail, DefaultOptions),
-            AuthJson = cookieRequest.Json,
+            SaData = JsonSerializer.Serialize(detail, JsonOpts),
+            AuthJson = req.Json,
             Version = new EntityAuthenticationVersion { Version = MPay.GameVersion },
             Aid = otp.Aid.ToString(),
             OtpToken = otp.OtpToken,
             LockTime = 0
-        }, DefaultOptions);
-        
-        var body = HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(data));
-        var response = await (await _core.PostAsync("/authentication-otp", body)).Content.ReadAsByteArrayAsync();
-        var decrypted = HttpUtil.HttpDecrypt(response) ?? throw new Exception("Cannot decrypt data");
-        var entity = JsonSerializer.Deserialize<Entity<EntityAuthenticationOtp>>(decrypted)!;
-        if (entity.Code == 0)
-            return entity.Data!;
-        throw new Exception(entity.Message);
+        }, JsonOpts);
+        var cipher = HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(payload));
+        var respBytes = await (await _core.PostAsync("/authentication-otp", cipher)).Content.ReadAsByteArrayAsync();
+        var plain = HttpUtil.HttpDecrypt(respBytes) ?? throw new Exception("Decryption failed");
+        var result = JsonSerializer.Deserialize<Entity<EntityAuthenticationOtp>>(plain)!;
+        return result.Code == 0 ? result.Data! : throw new Exception(result.Message);
     }
 
-    public async Task<EntityAuthenticationUpdate?> AuthenticationUpdateAsync(string userId, string userToken)
+    public async Task<EntityAuthenticationUpdate?> AuthenticationUpdateAsync(string uid, string tok)
     {
-        var entityJson = JsonSerializer.Serialize(new EntityAuthenticationUpdate
-        {
-            EntityId = userId,
-            IsRegister = true
-        }, DefaultOptions);
-        var body = HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(entityJson));
-        var response = await _core.PostAsync("/authentication/update", body, builder =>
-        {
-            builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, entityJson, userId, userToken));
-        });
-        var decrypted = HttpUtil.HttpDecrypt(await response.Content.ReadAsByteArrayAsync());
-        if (response.IsSuccessStatusCode && decrypted != null)
-        {
-            try
-            {
-                return JsonSerializer.Deserialize<Entity<EntityAuthenticationUpdate>>(decrypted)!.Data;
-            }
-            catch { }
-        }
+        var json = JsonSerializer.Serialize(new EntityAuthenticationUpdate { EntityId = uid, IsRegister = true }, JsonOpts);
+        var cipher = HttpUtil.HttpEncrypt(Encoding.UTF8.GetBytes(json));
+        var resp = await _core.PostAsync("/authentication/update", cipher, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, json, uid, tok)));
+        var plain = HttpUtil.HttpDecrypt(await resp.Content.ReadAsByteArrayAsync());
+        if (resp.IsSuccessStatusCode && plain != null) try { return JsonSerializer.Deserialize<Entity<EntityAuthenticationUpdate>>(plain)!.Data; } catch { }
         return null;
     }
 
-    #endregion
+    public Entities<EntityNetGameItem> GetAvailableNetGames(string uid, string tok, int off, int len) => FetchNetGames(uid, tok, off, len).GetAwaiter().GetResult();
+    public Task<Entities<EntityNetGameItem>> GetAvailableNetGamesAsync(string uid, string tok, int off, int len) => FetchNetGames(uid, tok, off, len);
 
-    #region NetGame API
-
-    public Entities<EntityNetGameItem> GetAvailableNetGames(string userId, string userToken, int offset, int length)
+    private async Task<Entities<EntityNetGameItem>> FetchNetGames(string uid, string tok, int off, int len)
     {
-        return GetAvailableNetGamesAsync(userId, userToken, offset, length).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityNetGameRequest { AvailableMcVersions = Array.Empty<string>(), ItemType = 1, Length = len, Offset = off, MasterTypeId = "2", SecondaryTypeId = "" }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntityNetGameItem>>(await PostWithToken(_api, "/item/query/available", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityNetGameItem>> GetAvailableNetGamesAsync(string userId, string userToken, int offset, int length)
+    public Entities<EntityQueryNetGameItem> QueryNetGameItemByIds(string uid, string tok, string[] ids) => QueryGamesByIds(uid, tok, ids).GetAwaiter().GetResult();
+    public Task<Entities<EntityQueryNetGameItem>> QueryNetGameItemByIdsAsync(string uid, string tok, string[] ids) => QueryGamesByIds(uid, tok, ids);
+
+    private async Task<Entities<EntityQueryNetGameItem>> QueryGamesByIds(string uid, string tok, string[] ids)
     {
-        var body = JsonSerializer.Serialize(new EntityNetGameRequest
-        {
-            AvailableMcVersions = Array.Empty<string>(),
-            ItemType = 1,
-            Length = length,
-            Offset = offset,
-            MasterTypeId = "2",
-            SecondaryTypeId = ""
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntityNetGameItem>>(
-            await (await _game.PostAsync("/item/query/available", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityQueryNetGameRequest { EntityIds = ids }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntityQueryNetGameItem>>(await PostWithToken(_api, "/item/query/search-by-ids", body, uid, tok))!;
     }
 
-    public Entities<EntityQueryNetGameItem> QueryNetGameItemByIds(string userId, string userToken, string[] ids)
+    public Entity<EntityQueryNetGameDetailItem> QueryNetGameDetailById(string uid, string tok, string gid) => FetchGameDetail(uid, tok, gid).GetAwaiter().GetResult();
+    public Task<Entity<EntityQueryNetGameDetailItem>> QueryNetGameDetailByIdAsync(string uid, string tok, string gid) => FetchGameDetail(uid, tok, gid);
+
+    private async Task<Entity<EntityQueryNetGameDetailItem>> FetchGameDetail(string uid, string tok, string gid)
     {
-        return QueryNetGameItemByIdsAsync(userId, userToken, ids).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityQueryNetGameDetailRequest { ItemId = gid }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityQueryNetGameDetailItem>>(await PostWithToken(_api, "/item-details/get_v2", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityQueryNetGameItem>> QueryNetGameItemByIdsAsync(string userId, string userToken, string[] ids)
+    public Entities<EntityGameCharacter> QueryNetGameCharacters(string uid, string tok, string gid) => FetchCharacters(uid, tok, gid).GetAwaiter().GetResult();
+    public Task<Entities<EntityGameCharacter>> QueryNetGameCharactersAsync(string uid, string tok, string gid) => FetchCharacters(uid, tok, gid);
+
+    private async Task<Entities<EntityGameCharacter>> FetchCharacters(string uid, string tok, string gid)
     {
-        var body = JsonSerializer.Serialize(new EntityQueryNetGameRequest { EntityIds = ids }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntityQueryNetGameItem>>(
-            await (await _game.PostAsync("/item/query/search-by-ids", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityQueryGameCharacters { GameId = gid, UserId = uid }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntityGameCharacter>>(await PostWithToken(_api, "/game-character/query/user-game-characters", body, uid, tok))!;
     }
 
-    public Entity<EntityQueryNetGameDetailItem> QueryNetGameDetailById(string userId, string userToken, string gameId)
+    public Entity<EntityNetGameServerAddress> GetNetGameServerAddress(string uid, string tok, string gid) => FetchServerAddr(uid, tok, gid).GetAwaiter().GetResult();
+    public Task<Entity<EntityNetGameServerAddress>> GetNetGameServerAddressAsync(string uid, string tok, string gid) => FetchServerAddr(uid, tok, gid);
+
+    private async Task<Entity<EntityNetGameServerAddress>> FetchServerAddr(string uid, string tok, string gid)
     {
-        return QueryNetGameDetailByIdAsync(userId, userToken, gameId).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new { item_id = gid }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityNetGameServerAddress>>(await PostWithToken(_api, "/item-address/get", body, uid, tok))!;
     }
 
-    public async Task<Entity<EntityQueryNetGameDetailItem>> QueryNetGameDetailByIdAsync(string userId, string userToken, string gameId)
+    public Entities<EntityNetGameItem>? QueryNetGameWithKeyword(string uid, string tok, string kw) => SearchByKeyword(uid, tok, kw).GetAwaiter().GetResult();
+    public Task<Entities<EntityNetGameItem>?> QueryNetGameWithKeywordAsync(string uid, string tok, string kw) => SearchByKeyword(uid, tok, kw);
+
+    private async Task<Entities<EntityNetGameItem>?> SearchByKeyword(string uid, string tok, string kw)
     {
-        var body = JsonSerializer.Serialize(new EntityQueryNetGameDetailRequest { ItemId = gameId }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityQueryNetGameDetailItem>>(
-            await (await _game.PostAsync("/item-details/get_v2", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityNetGameKeyword { Keyword = kw }, JsonOpts);
+        var resp = await _api.PostAsync("/item/query/search-by-keyword", body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        return resp.IsSuccessStatusCode ? JsonSerializer.Deserialize<Entities<EntityNetGameItem>>(await resp.Content.ReadAsStringAsync()) : null;
     }
 
-    public Entities<EntityGameCharacter> QueryNetGameCharacters(string userId, string userToken, string gameId)
+    public void CreateCharacter(string uid, string tok, string gid, string name) => AddCharacter(uid, tok, gid, name).GetAwaiter().GetResult();
+    public Task CreateCharacterAsync(string uid, string tok, string gid, string name) => AddCharacter(uid, tok, gid, name);
+
+    private async Task AddCharacter(string uid, string tok, string gid, string name)
     {
-        return QueryNetGameCharactersAsync(userId, userToken, gameId).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityCreateCharacter { GameId = gid, UserId = uid, Name = name }, JsonOpts);
+        var resp = await _api.PostAsync("/game-character", body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        if (!resp.IsSuccessStatusCode) throw new Exception("Character creation failed");
     }
 
-    public async Task<Entities<EntityGameCharacter>> QueryNetGameCharactersAsync(string userId, string userToken, string gameId)
+    public Entities<EntitySkin> GetFreeSkinList(string uid, string tok, int off, int len = 20) => FetchSkins(uid, tok, off, len).GetAwaiter().GetResult();
+    public Task<Entities<EntitySkin>> GetFreeSkinListAsync(string uid, string tok, int off, int len = 20) => FetchSkins(uid, tok, off, len);
+
+    private async Task<Entities<EntitySkin>> FetchSkins(string uid, string tok, int off, int len)
     {
-        var body = JsonSerializer.Serialize(new EntityQueryGameCharacters
-        {
-            GameId = gameId,
-            UserId = userId
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntityGameCharacter>>(
-            await (await _game.PostAsync("/game-character/query/user-game-characters", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityFreeSkinListRequest { IsHas = true, ItemType = 2, Length = len, MasterTypeId = 10, Offset = off, PriceType = 3, SecondaryTypeId = 31 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntitySkin>>(await PostWithToken(_gw, "/item/query/available", body, uid, tok))!;
     }
 
-    public Entity<EntityNetGameServerAddress> GetNetGameServerAddress(string userId, string userToken, string gameId)
+    public Entities<EntitySkin> QueryFreeSkinByName(string uid, string tok, string name) => SearchSkinByName(uid, tok, name).GetAwaiter().GetResult();
+    public Task<Entities<EntitySkin>> QueryFreeSkinByNameAsync(string uid, string tok, string name) => SearchSkinByName(uid, tok, name);
+
+    private async Task<Entities<EntitySkin>> SearchSkinByName(string uid, string tok, string name)
     {
-        return GetNetGameServerAddressAsync(userId, userToken, gameId).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityQuerySkinByNameRequest { IsHas = true, IsSync = 0, ItemType = 2, Keyword = name, Length = 20, MasterTypeId = 10, Offset = 0, PriceType = 3, SecondaryTypeId = "31", SortType = 1, Year = 0 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntitySkin>>(await PostWithToken(_gw, "/item/query/search-by-keyword", body, uid, tok))!;
     }
 
-    public async Task<Entity<EntityNetGameServerAddress>> GetNetGameServerAddressAsync(string userId, string userToken, string gameId)
+    public Entities<EntitySkin> GetSkinDetails(string uid, string tok, Entities<EntitySkin> list) => FetchSkinDetails(uid, tok, list).GetAwaiter().GetResult();
+    public Task<Entities<EntitySkin>> GetSkinDetailsAsync(string uid, string tok, Entities<EntitySkin> list) => FetchSkinDetails(uid, tok, list);
+
+    private async Task<Entities<EntitySkin>> FetchSkinDetails(string uid, string tok, Entities<EntitySkin> list)
     {
-        var body = JsonSerializer.Serialize(new { item_id = gameId }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityNetGameServerAddress>>(
-            await (await _game.PostAsync("/item-address/get", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var ids = list.Data.Select(e => e.EntityId).ToList();
+        var body = JsonSerializer.Serialize(new EntitySkinDetailsRequest { ChannelId = 11, EntityIds = ids, IsHas = true, WithPrice = true, WithTitleImage = true }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntitySkin>>(await PostWithToken(_gw, "/item/query/search-by-ids", body, uid, tok))!;
     }
 
-    public Entities<EntityNetGameItem>? QueryNetGameWithKeyword(string userId, string userToken, string keyword)
+    public EntityResponse PurchaseSkin(string uid, string tok, string eid) => BuySkin(uid, tok, eid).GetAwaiter().GetResult();
+    public Task<EntityResponse> PurchaseSkinAsync(string uid, string tok, string eid) => BuySkin(uid, tok, eid);
+
+    private async Task<EntityResponse> BuySkin(string uid, string tok, string eid)
     {
-        return QueryNetGameWithKeywordAsync(userId, userToken, keyword).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntitySkinPurchaseRequest { BatchCount = 1, BuyPath = "PC_H5_COMPONENT_DETAIL", Diamond = 0, EntityId = 0, ItemId = eid, ItemLevel = 0, LastPlayTime = 0, PurchaseTime = 0, TotalPlayTime = 0, UserId = uid }, JsonOpts);
+        return JsonSerializer.Deserialize<EntityResponse>(await PostWithToken(_gw, "/user-item-purchase", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityNetGameItem>?> QueryNetGameWithKeywordAsync(string userId, string userToken, string keyword)
+    public EntityResponse SetSkin(string uid, string tok, string eid) => ApplySkin(uid, tok, eid).GetAwaiter().GetResult();
+    public Task<EntityResponse> SetSkinAsync(string uid, string tok, string eid) => ApplySkin(uid, tok, eid);
+
+    private async Task<EntityResponse> ApplySkin(string uid, string tok, string eid)
     {
-        var response = await _game.PostAsync("/item/query/search-by-keyword",
-            JsonSerializer.Serialize(new EntityNetGameKeyword { Keyword = keyword }, DefaultOptions),
-            builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            });
-        var content = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
-            return null;
-        return JsonSerializer.Deserialize<Entities<EntityNetGameItem>>(content);
+        var settings = new[] { 9, 8, 2, 10, 7 }.Select(gt => new EntitySkinSettings { ClientType = "java", GameType = gt, SkinId = eid, SkinMode = 0, SkinType = 31 }).ToList();
+        var body = JsonSerializer.Serialize(new { skin_settings = settings }, JsonOpts);
+        return JsonSerializer.Deserialize<EntityResponse>(await PostWithToken(_gw, "/user-game-skin-multi", body, uid, tok))!;
     }
 
-    public void CreateCharacter(string userId, string userToken, string gameId, string roleName)
+    public List<EntityUserGameTexture> GetSkinListInGame(string uid, string tok, EntityUserGameTextureRequest req) => FetchGameSkins(uid, tok, req).GetAwaiter().GetResult();
+    public Task<List<EntityUserGameTexture>> GetSkinListInGameAsync(string uid, string tok, EntityUserGameTextureRequest req) => FetchGameSkins(uid, tok, req);
+
+    private async Task<List<EntityUserGameTexture>> FetchGameSkins(string uid, string tok, EntityUserGameTextureRequest req)
     {
-        CreateCharacterAsync(userId, userToken, gameId, roleName).GetAwaiter().GetResult();
-    }
-
-    public async Task CreateCharacterAsync(string userId, string userToken, string gameId, string roleName)
-    {
-        var response = await _game.PostAsync("/game-character",
-            JsonSerializer.Serialize(new EntityCreateCharacter
-            {
-                GameId = gameId,
-                UserId = userId,
-                Name = roleName
-            }, DefaultOptions),
-            builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            });
-        if (!response.IsSuccessStatusCode)
-            throw new Exception("Failed to create character");
-    }
-
-    #endregion
-
-    #region Skin API
-
-    public Entities<EntitySkin> GetFreeSkinList(string userId, string userToken, int offset, int length = 20)
-    {
-        return GetFreeSkinListAsync(userId, userToken, offset, length).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entities<EntitySkin>> GetFreeSkinListAsync(string userId, string userToken, int offset, int length = 20)
-    {
-        var body = JsonSerializer.Serialize(new EntityFreeSkinListRequest
-        {
-            IsHas = true,
-            ItemType = 2,
-            Length = length,
-            MasterTypeId = 10,
-            Offset = offset,
-            PriceType = 3,
-            SecondaryTypeId = 31
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntitySkin>>(
-            await (await _gateway.PostAsync("/item/query/available", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public Entities<EntitySkin> QueryFreeSkinByName(string userId, string userToken, string name)
-    {
-        return QueryFreeSkinByNameAsync(userId, userToken, name).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entities<EntitySkin>> QueryFreeSkinByNameAsync(string userId, string userToken, string name)
-    {
-        var body = JsonSerializer.Serialize(new EntityQuerySkinByNameRequest
-        {
-            IsHas = true,
-            IsSync = 0,
-            ItemType = 2,
-            Keyword = name,
-            Length = 20,
-            MasterTypeId = 10,
-            Offset = 0,
-            PriceType = 3,
-            SecondaryTypeId = "31",
-            SortType = 1,
-            Year = 0
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntitySkin>>(
-            await (await _gateway.PostAsync("/item/query/search-by-keyword", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public Entities<EntitySkin> GetSkinDetails(string userId, string userToken, Entities<EntitySkin> skinList)
-    {
-        return GetSkinDetailsAsync(userId, userToken, skinList).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entities<EntitySkin>> GetSkinDetailsAsync(string userId, string userToken, Entities<EntitySkin> skinList)
-    {
-        var entityIds = skinList.Data.Select(e => e.EntityId).ToList();
-        var body = JsonSerializer.Serialize(new EntitySkinDetailsRequest
-        {
-            ChannelId = 11,
-            EntityIds = entityIds,
-            IsHas = true,
-            WithPrice = true,
-            WithTitleImage = true
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntitySkin>>(
-            await (await _gateway.PostAsync("/item/query/search-by-ids", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public EntityResponse PurchaseSkin(string userId, string userToken, string entityId)
-    {
-        return PurchaseSkinAsync(userId, userToken, entityId).GetAwaiter().GetResult();
-    }
-
-    public async Task<EntityResponse> PurchaseSkinAsync(string userId, string userToken, string entityId)
-    {
-        var body = JsonSerializer.Serialize(new EntitySkinPurchaseRequest
-        {
-            BatchCount = 1,
-            BuyPath = "PC_H5_COMPONENT_DETAIL",
-            Diamond = 0,
-            EntityId = 0,
-            ItemId = entityId,
-            ItemLevel = 0,
-            LastPlayTime = 0,
-            PurchaseTime = 0,
-            TotalPlayTime = 0,
-            UserId = userId
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<EntityResponse>(
-            await (await _gateway.PostAsync("/user-item-purchase", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public EntityResponse SetSkin(string userId, string userToken, string entityId)
-    {
-        return SetSkinAsync(userId, userToken, entityId).GetAwaiter().GetResult();
-    }
-
-    public async Task<EntityResponse> SetSkinAsync(string userId, string userToken, string entityId)
-    {
-        var skinSettings = new List<EntitySkinSettings>();
-        foreach (var gameType in new[] { 9, 8, 2, 10, 7 })
-        {
-            skinSettings.Add(new EntitySkinSettings
-            {
-                ClientType = "java",
-                GameType = gameType,
-                SkinId = entityId,
-                SkinMode = 0,
-                SkinType = 31
-            });
-        }
-        var body = JsonSerializer.Serialize(new { skin_settings = skinSettings }, DefaultOptions);
-        return JsonSerializer.Deserialize<EntityResponse>(
-            await (await _gateway.PostAsync("/user-game-skin-multi", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public List<EntityUserGameTexture> GetSkinListInGame(string userId, string userToken, EntityUserGameTextureRequest entity)
-    {
-        return GetSkinListInGameAsync(userId, userToken, entity).GetAwaiter().GetResult();
-    }
-
-    public async Task<List<EntityUserGameTexture>> GetSkinListInGameAsync(string userId, string userToken, EntityUserGameTextureRequest entity)
-    {
-        var body = JsonSerializer.Serialize(entity, DefaultOptions);
-        var result = JsonSerializer.Deserialize<Entities<EntityUserGameTexture>>(
-            await (await _game.PostAsync("/user-game-skin/query/search-by-type", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(req, JsonOpts);
+        var result = JsonSerializer.Deserialize<Entities<EntityUserGameTexture>>(await PostWithToken(_api, "/user-game-skin/query/search-by-type", body, uid, tok))!;
         return result.Data.ToList();
     }
 
-    #endregion
-
-    #region Minecraft Client Libs
-
-    public async Task<Entity<EntityQuerySearchByGameResponse>> GetGameCoreModListAsync(string userId, string userToken, EnumGameVersion gameVersion, bool isRental)
+    public async Task<Entity<EntityQuerySearchByGameResponse>> GetGameCoreModListAsync(string uid, string tok, EnumGameVersion ver, bool isRental)
     {
-        var body = JsonSerializer.Serialize(new EntityQuerySearchByGameRequest
-        {
-            McVersionId = (int)gameVersion,
-            GameType = isRental ? 8 : 2
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityQuerySearchByGameResponse>>(
-            await (await _game.PostAsync("/game-auth-item-list/query/search-by-game", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityQuerySearchByGameRequest { McVersionId = (int)ver, GameType = isRental ? 8 : 2 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityQuerySearchByGameResponse>>(await PostWithToken(_api, "/game-auth-item-list/query/search-by-game", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityComponentDownloadInfoResponse>> GetGameCoreModDetailsListAsync(string userId, string userToken, List<ulong> gameModList)
+    public async Task<Entities<EntityComponentDownloadInfoResponse>> GetGameCoreModDetailsListAsync(string uid, string tok, List<ulong> mods)
     {
-        var body = JsonSerializer.Serialize(new EntitySearchByIdsQuery { ItemIdList = gameModList }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntityComponentDownloadInfoResponse>>(
-            await (await _game.PostAsync("/user-item-download-v2/get-list", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntitySearchByIdsQuery { ItemIdList = mods }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntityComponentDownloadInfoResponse>>(await PostWithToken(_api, "/user-item-download-v2/get-list", body, uid, tok))!;
     }
 
-    public Entity<EntityCoreLibResponse> GetMinecraftClientLibs(string userId, string userToken, EnumGameVersion? gameVersion = null)
+    public Entity<EntityCoreLibResponse> GetMinecraftClientLibs(string uid, string tok, EnumGameVersion? ver = null) => FetchClientLibs(uid, tok, ver).GetAwaiter().GetResult();
+    public Task<Entity<EntityCoreLibResponse>> GetMinecraftClientLibsAsync(string uid, string tok, EnumGameVersion? ver = null) => FetchClientLibs(uid, tok, ver);
+
+    private async Task<Entity<EntityCoreLibResponse>> FetchClientLibs(string uid, string tok, EnumGameVersion? ver)
     {
-        return GetMinecraftClientLibsAsync(userId, userToken, gameVersion).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityMcDownloadVersion { McVersion = (int)(ver ?? EnumGameVersion.NONE) }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityCoreLibResponse>>(await PostWithToken(_lobby, "/game-patch-info", body, uid, tok))!;
     }
 
-    public async Task<Entity<EntityCoreLibResponse>> GetMinecraftClientLibsAsync(string userId, string userToken, EnumGameVersion? gameVersion = null)
+    public Entity<EntityComponentDownloadInfoResponse> GetNetGameComponentDownloadList(string uid, string tok, string gid) => FetchComponentList(uid, tok, gid).GetAwaiter().GetResult();
+    public Task<Entity<EntityComponentDownloadInfoResponse>> GetNetGameComponentDownloadListAsync(string uid, string tok, string gid) => FetchComponentList(uid, tok, gid);
+
+    private async Task<Entity<EntityComponentDownloadInfoResponse>> FetchComponentList(string uid, string tok, string gid)
     {
-        gameVersion ??= EnumGameVersion.NONE;
-        var body = JsonSerializer.Serialize(new EntityMcDownloadVersion { McVersion = (int)gameVersion.Value }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityCoreLibResponse>>(
-            await (await _client.PostAsync("/game-patch-info", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntitySearchByItemIdQuery { ItemId = gid, Length = 0, Offset = 0 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityComponentDownloadInfoResponse>>(await PostWithToken(_lobby, "/user-item-download-v2", body, uid, tok))!;
     }
 
-    public Entity<EntityComponentDownloadInfoResponse> GetNetGameComponentDownloadList(string userId, string userToken, string gameId)
+    public Entities<EntityRentalGame> GetRentalGameList(string uid, string tok, int off) => FetchRentals(uid, tok, off).GetAwaiter().GetResult();
+    public Task<Entities<EntityRentalGame>> GetRentalGameListAsync(string uid, string tok, int off) => FetchRentals(uid, tok, off);
+
+    private async Task<Entities<EntityRentalGame>> FetchRentals(string uid, string tok, int off)
     {
-        return GetNetGameComponentDownloadListAsync(userId, userToken, gameId).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityQueryRentalGame { Offset = off, SortType = 0 }, JsonOpts);
+        var resp = await _rent.PostAsync("/rental-server/query/available-public-server", body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        return JsonSerializer.Deserialize<Entities<EntityRentalGame>>(await resp.Content.ReadAsStringAsync(), EnumOpts)!;
     }
 
-    public async Task<Entity<EntityComponentDownloadInfoResponse>> GetNetGameComponentDownloadListAsync(string userId, string userToken, string gameId)
+    public Entities<EntityRentalGamePlayerList> GetRentalGameRolesList(string uid, string tok, string eid) => FetchRentalRoles(uid, tok, eid).GetAwaiter().GetResult();
+    public Task<Entities<EntityRentalGamePlayerList>> GetRentalGameRolesListAsync(string uid, string tok, string eid) => FetchRentalRoles(uid, tok, eid);
+
+    private async Task<Entities<EntityRentalGamePlayerList>> FetchRentalRoles(string uid, string tok, string eid)
     {
-        var body = JsonSerializer.Serialize(new EntitySearchByItemIdQuery
-        {
-            ItemId = gameId,
-            Length = 0,
-            Offset = 0
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityComponentDownloadInfoResponse>>(
-            await (await _client.PostAsync("/user-item-download-v2", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityQueryRentalGamePlayerList { ServerId = eid, Offset = 0, Length = 10 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entities<EntityRentalGamePlayerList>>(await PostWithToken(_rent, "/rental-server-player/query/search-by-user-server", body, uid, tok))!;
     }
 
-    #endregion
+    public Entity<EntityRentalGamePlayerList> AddRentalGameRole(string uid, string tok, string sid, string name) => CreateRentalRole(uid, tok, sid, name).GetAwaiter().GetResult();
+    public Task<Entity<EntityRentalGamePlayerList>> AddRentalGameRoleAsync(string uid, string tok, string sid, string name) => CreateRentalRole(uid, tok, sid, name);
 
-    #region Rental Game API
-
-    public Entities<EntityRentalGame> GetRentalGameList(string userId, string userToken, int offset)
+    private async Task<Entity<EntityRentalGamePlayerList>> CreateRentalRole(string uid, string tok, string sid, string name)
     {
-        return GetRentalGameListAsync(userId, userToken, offset).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityAddRentalGameRole { ServerId = sid, UserId = uid, Name = name, CreateTs = (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() % int.MaxValue), IsOnline = false, Status = 0 }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityRentalGamePlayerList>>(await PostWithToken(_rent, "/rental-server-player", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityRentalGame>> GetRentalGameListAsync(string userId, string userToken, int offset)
+    public Entity<EntityRentalGamePlayerList> DeleteRentalGameRole(string uid, string tok, string eid) => RemoveRentalRole(uid, tok, eid).GetAwaiter().GetResult();
+    public Task<Entity<EntityRentalGamePlayerList>> DeleteRentalGameRoleAsync(string uid, string tok, string eid) => RemoveRentalRole(uid, tok, eid);
+
+    private async Task<Entity<EntityRentalGamePlayerList>> RemoveRentalRole(string uid, string tok, string eid)
     {
-        var body = JsonSerializer.Serialize(new EntityQueryRentalGame
-        {
-            Offset = offset,
-            SortType = 0
-        }, DefaultOptions);
-        var response = await _rental.PostAsync("/rental-server/query/available-public-server", body, builder =>
-        {
-            builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-        });
-        return JsonSerializer.Deserialize<Entities<EntityRentalGame>>(await response.Content.ReadAsStringAsync(), EnumOptions)!;
+        var body = JsonSerializer.Serialize(new EntityDeleteRentalGameRole { EntityId = eid }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityRentalGamePlayerList>>(await PostWithToken(_rent, "/rental-server-player/delete", body, uid, tok))!;
     }
 
-    public Entities<EntityRentalGamePlayerList> GetRentalGameRolesList(string userId, string userToken, string entityId)
+    public Entity<EntityRentalGameServerAddress> GetRentalGameServerAddress(string uid, string tok, string eid, string? pwd = null) => FetchRentalAddr(uid, tok, eid, pwd).GetAwaiter().GetResult();
+    public Task<Entity<EntityRentalGameServerAddress>> GetRentalGameServerAddressAsync(string uid, string tok, string eid, string? pwd = null) => FetchRentalAddr(uid, tok, eid, pwd);
+
+    private async Task<Entity<EntityRentalGameServerAddress>> FetchRentalAddr(string uid, string tok, string eid, string? pwd)
     {
-        return GetRentalGameRolesListAsync(userId, userToken, entityId).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityQueryRentalGameServerAddress { ServerId = eid, Password = pwd ?? "none" }, JsonOpts);
+        return JsonSerializer.Deserialize<Entity<EntityRentalGameServerAddress>>(await PostWithToken(_rent, "/rental-server-world-enter/get", body, uid, tok))!;
     }
 
-    public async Task<Entities<EntityRentalGamePlayerList>> GetRentalGameRolesListAsync(string userId, string userToken, string entityId)
+    public Entity<EntityRentalGameDetails> GetRentalGameDetails(string uid, string tok, string eid) => FetchRentalDetails(uid, tok, eid).GetAwaiter().GetResult();
+    public Task<Entity<EntityRentalGameDetails>> GetRentalGameDetailsAsync(string uid, string tok, string eid) => FetchRentalDetails(uid, tok, eid);
+
+    private async Task<Entity<EntityRentalGameDetails>> FetchRentalDetails(string uid, string tok, string eid)
     {
-        var body = JsonSerializer.Serialize(new EntityQueryRentalGamePlayerList
-        {
-            ServerId = entityId,
-            Offset = 0,
-            Length = 10
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entities<EntityRentalGamePlayerList>>(
-            await (await _rental.PostAsync("/rental-server-player/query/search-by-user-server", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
+        var body = JsonSerializer.Serialize(new EntityQueryRentalGameDetail { ServerId = eid }, JsonOpts);
+        var resp = await _rent.PostAsync("/rental-server-details/get", body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        return JsonSerializer.Deserialize<Entity<EntityRentalGameDetails>>(await resp.Content.ReadAsStringAsync(), EnumOpts)!;
     }
 
-    public Entity<EntityRentalGamePlayerList> AddRentalGameRole(string userId, string userToken, string serverId, string roleName)
+    public Entities<EntityRentalGame> SearchRentalGameByName(string uid, string tok, string wid) => SearchRental(uid, tok, wid).GetAwaiter().GetResult();
+    public Task<Entities<EntityRentalGame>> SearchRentalGameByNameAsync(string uid, string tok, string wid) => SearchRental(uid, tok, wid);
+
+    private async Task<Entities<EntityRentalGame>> SearchRental(string uid, string tok, string wid)
     {
-        return AddRentalGameRoleAsync(userId, userToken, serverId, roleName).GetAwaiter().GetResult();
+        var body = JsonSerializer.Serialize(new EntityQueryRentalGameById { Offset = 0, SortType = EnumSortType.General, WorldNameKey = new List<string> { wid } }, JsonOpts);
+        var resp = await _rent.PostAsync("/rental-server/query/available-public-server", body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        return JsonSerializer.Deserialize<Entities<EntityRentalGame>>(await resp.Content.ReadAsStringAsync(), EnumOpts)!;
     }
 
-    public async Task<Entity<EntityRentalGamePlayerList>> AddRentalGameRoleAsync(string userId, string userToken, string serverId, string roleName)
+    private static async Task<string> PostWithToken(HttpWrapper client, string path, string body, string uid, string tok)
     {
-        var body = JsonSerializer.Serialize(new EntityAddRentalGameRole
-        {
-            ServerId = serverId,
-            UserId = userId,
-            Name = roleName,
-            CreateTs = (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() % int.MaxValue),
-            IsOnline = false,
-            Status = 0
-        }, DefaultOptions);
-        System.Diagnostics.Debug.WriteLine($"[WPFLauncher] AddRentalGameRole request body: {body}");
-        var response = await _rental.PostAsync("/rental-server-player", body, builder =>
-        {
-            builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-        });
-        var content = await response.Content.ReadAsStringAsync();
-        System.Diagnostics.Debug.WriteLine($"[WPFLauncher] AddRentalGameRole response: {content}");
-        return JsonSerializer.Deserialize<Entity<EntityRentalGamePlayerList>>(content)!;
+        var resp = await client.PostAsync(path, body, b => b.AddHeader(TokenUtil.ComputeHttpRequestToken(b.Url, b.Body, uid, tok)));
+        return await resp.Content.ReadAsStringAsync();
     }
-
-    public Entity<EntityRentalGamePlayerList> DeleteRentalGameRole(string userId, string userToken, string entityId)
-    {
-        return DeleteRentalGameRoleAsync(userId, userToken, entityId).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entity<EntityRentalGamePlayerList>> DeleteRentalGameRoleAsync(string userId, string userToken, string entityId)
-    {
-        var body = JsonSerializer.Serialize(new EntityDeleteRentalGameRole { EntityId = entityId }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityRentalGamePlayerList>>(
-            await (await _rental.PostAsync("/rental-server-player/delete", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public Entity<EntityRentalGameServerAddress> GetRentalGameServerAddress(string userId, string userToken, string entityId, string? pwd = null)
-    {
-        return GetRentalGameServerAddressAsync(userId, userToken, entityId, pwd).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entity<EntityRentalGameServerAddress>> GetRentalGameServerAddressAsync(string userId, string userToken, string entityId, string? pwd = null)
-    {
-        var body = JsonSerializer.Serialize(new EntityQueryRentalGameServerAddress
-        {
-            ServerId = entityId,
-            Password = pwd ?? "none"
-        }, DefaultOptions);
-        return JsonSerializer.Deserialize<Entity<EntityRentalGameServerAddress>>(
-            await (await _rental.PostAsync("/rental-server-world-enter/get", body, builder =>
-            {
-                builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-            })).Content.ReadAsStringAsync())!;
-    }
-
-    public Entity<EntityRentalGameDetails> GetRentalGameDetails(string userId, string userToken, string entityId)
-    {
-        return GetRentalGameDetailsAsync(userId, userToken, entityId).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entity<EntityRentalGameDetails>> GetRentalGameDetailsAsync(string userId, string userToken, string entityId)
-    {
-        var body = JsonSerializer.Serialize(new EntityQueryRentalGameDetail { ServerId = entityId }, DefaultOptions);
-        var content = await (await _rental.PostAsync("/rental-server-details/get", body, builder =>
-        {
-            builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-        })).Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<Entity<EntityRentalGameDetails>>(content, EnumOptions)!;
-    }
-
-    public Entities<EntityRentalGame> SearchRentalGameByName(string userId, string userToken, string worldId)
-    {
-        return SearchRentalGameByNameAsync(userId, userToken, worldId).GetAwaiter().GetResult();
-    }
-
-    public async Task<Entities<EntityRentalGame>> SearchRentalGameByNameAsync(string userId, string userToken, string worldId)
-    {
-        var body = JsonSerializer.Serialize(new EntityQueryRentalGameById
-        {
-            Offset = 0,
-            SortType = EnumSortType.General,
-            WorldNameKey = new List<string> { worldId }
-        }, DefaultOptions);
-        var response = await _rental.PostAsync("/rental-server/query/available-public-server", body, builder =>
-        {
-            builder.AddHeader(TokenUtil.ComputeHttpRequestToken(builder.Url, builder.Body, userId, userToken));
-        });
-        return JsonSerializer.Deserialize<Entities<EntityRentalGame>>(await response.Content.ReadAsStringAsync(), EnumOptions)!;
-    }
-
-    #endregion
 }
