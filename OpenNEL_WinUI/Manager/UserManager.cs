@@ -23,10 +23,10 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenNEL.WPFLauncher;
-using OpenNEL.WPFLauncher.Entities;
-using OpenNEL.SDK.Entities;
-using OpenNEL.SDK.Manager;
+using Codexus.Cipher.Entities.WPFLauncher;
+using Codexus.Cipher.Protocol;
+using Codexus.Development.SDK.Entities;
+using Codexus.Development.SDK.Manager;
 using OpenNEL_WinUI.Entities.Web;
 using OpenNEL_WinUI.Entities.Web.NEL;
 using Serilog;
@@ -112,7 +112,7 @@ namespace OpenNEL_WinUI.Manager;
 
 	private async Task MaintainThreadAsync()
 	{
-		using WPFLauncherClient launcher = new WPFLauncherClient();
+		using WPFLauncher launcher = new WPFLauncher();
 		_ = 2;
 		try
 		{
@@ -144,7 +144,7 @@ namespace OpenNEL_WinUI.Manager;
 		}
 	}
 
-	private async Task ProcessExpiredUsersAsync(WPFLauncherClient launcher)
+	private async Task ProcessExpiredUsersAsync(WPFLauncher launcher)
 	{
 		long expirationThreshold = DateTimeOffset.UtcNow.AddMinutes(-30.0).ToUnixTimeMilliseconds();
 		List<EntityAvailableUser> list = _availableUsers.Values.Where((EntityAvailableUser u) => u.LastLoginTime < expirationThreshold).ToList();
@@ -154,7 +154,7 @@ namespace OpenNEL_WinUI.Manager;
 		}
 	}
 
-	private static async Task UpdateExpiredUserAsync(EntityAvailableUser expiredUser, WPFLauncherClient launcher)
+	private static async Task UpdateExpiredUserAsync(EntityAvailableUser expiredUser, WPFLauncher launcher)
 	{
 		try
 		{

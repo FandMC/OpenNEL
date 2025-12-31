@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Collections.Concurrent;
-using OpenNEL.SDK.Connection;
+using Codexus.Development.SDK.Connection;
 using Serilog;
 
 namespace OpenNEL.IRC;

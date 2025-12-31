@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Linq;
-using OpenNEL.PluginLoader.Manager;
+using Codexus.Development.SDK.Manager;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Plugin

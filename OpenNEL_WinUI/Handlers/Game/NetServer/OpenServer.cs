@@ -17,8 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Linq;
-using OpenNEL.WPFLauncher.Entities.NetGame;
-using OpenNEL.WPFLauncher.Entities;
+using Codexus.Cipher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher.NetGame;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.Manager;
@@ -40,7 +40,7 @@ public class OpenServer
         try
         {
             if (AppState.Debug) Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, last.UserId);
-            Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
+            Codexus.Cipher.Entities.Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
             var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
             return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }
@@ -60,7 +60,7 @@ public class OpenServer
             var u = UserManager.Instance.GetAvailableUser(accountId);
             if (u == null) return new ServerRolesResult { NotLogin = true };
             if (AppState.Debug) Log.Information("打开服务器: serverId={ServerId}, account={AccountId}", serverId, u.UserId);
-            Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(u.UserId, u.AccessToken, serverId);
+            Codexus.Cipher.Entities.Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(u.UserId, u.AccessToken, serverId);
             var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
             return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }

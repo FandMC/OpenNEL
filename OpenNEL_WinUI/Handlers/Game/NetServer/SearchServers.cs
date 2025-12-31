@@ -18,12 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Codexus.Cipher.Entities.WPFLauncher.NetGame;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Utils;
 using Serilog;
-using OpenNEL.WPFLauncher.Entities.NetGame;
-using OpenNEL.WPFLauncher.Entities;
 using OpenNEL_WinUI.Entities.Web.NetGame;
 
 namespace OpenNEL_WinUI.Handlers.Game.NetServer;
@@ -42,8 +41,8 @@ public class SearchServers
         try
         {
             var all = AppState.X19.GetAvailableNetGames(last.UserId, last.AccessToken, 0, 500);
-            Log.Debug("[SearchServers] API 返回: Code={Code}, DataCount={Count}", all.Code, all.Data?.Count() ?? 0);
-            var data = all.Data ?? new List<EntityNetGameItem>();
+            Log.Debug("[SearchServers] API 返回: Code={Code}, DataCount={Count}", all.Code, all.Data?.Length ?? 0);
+            var data = all.Data?.ToList() ?? new List<EntityNetGameItem>();
             var q = string.IsNullOrWhiteSpace(keyword) ? data.ToList() : data.Where(s => (s.Name ?? string.Empty).IndexOf(keyword!, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
             Log.Debug("[SearchServers] 过滤后数量: {FilteredCount}", q.Count);
             var pageItems = q.Skip(offset).Take(pageSize).Select(s => new ServerItem { EntityId = s.EntityId, Name = s.Name }).ToList();

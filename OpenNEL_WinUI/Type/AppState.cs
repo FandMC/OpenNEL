@@ -16,14 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
-using OpenNEL.WPFLauncher;
+using Codexus.Cipher.Protocol;
 
 namespace OpenNEL_WinUI.type;
 
 internal static class AppState
 {
-    private static WPFLauncherClient? _x19;
-    public static WPFLauncherClient X19 => _x19 ??= new WPFLauncherClient();
+    private static WPFLauncher? _x19;
+    public static WPFLauncher X19 => _x19 ??= new WPFLauncher();
     
     public static Services? Services;
     public static bool Debug;

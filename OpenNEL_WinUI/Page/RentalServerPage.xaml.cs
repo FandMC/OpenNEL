@@ -25,7 +25,7 @@ using OpenNEL_WinUI.Handlers.Game.RentalServer;
 using System.ComponentModel;
 using OpenNEL_WinUI.Manager;
 using Windows.ApplicationModel.DataTransfer;
-using OpenNEL.SDK.Entities;
+using Codexus.Development.SDK.Entities;
 using OpenNEL_WinUI.Entities.Web.RentalGame;
 using Serilog;
 using static OpenNEL_WinUI.Utils.StaTaskRunner;

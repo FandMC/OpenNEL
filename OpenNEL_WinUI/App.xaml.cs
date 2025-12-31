@@ -20,10 +20,9 @@ using System.IO;
 using Microsoft.UI.Xaml;
 using Serilog;
 using System.Threading.Tasks;
-using OpenNEL.SDK.Manager;
-using OpenNEL.PluginLoader.Manager;
+using Codexus.Development.SDK.Manager;
 using OpenNEL.Core.Utils;
-using OpenNEL.Interceptors;
+using Codexus.Interceptors;
 using OpenNEL.IRC;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Utils;
@@ -108,7 +107,7 @@ namespace OpenNEL_WinUI
             UserManager.Instance.ReadUsersFromDisk();
             Interceptor.EnsureLoaded();
             PacketManager.Instance.RegisterPacketFromAssembly(typeof(App).Assembly);
-            PacketManager.Instance.RegisterPacketFromAssembly(typeof(OpenNEL.IRC.IrcManager).Assembly);
+            PacketManager.Instance.RegisterPacketFromAssembly(typeof(IrcManager).Assembly);
             PacketManager.Instance.EnsureRegistered();
             RegisterIrcHandler();
             _ = Task.Run(() =>
@@ -116,7 +115,6 @@ namespace OpenNEL_WinUI
                 try
                 {
                     PluginManager.Instance.EnsureUninstall();
-                    PluginManager.Instance.OnAssemblyLoaded = assembly => PacketManager.Instance.RegisterPacketFromAssembly(assembly);
                     PluginManager.Instance.LoadPlugins(pluginDir);
                 }
                 catch (Exception ex)

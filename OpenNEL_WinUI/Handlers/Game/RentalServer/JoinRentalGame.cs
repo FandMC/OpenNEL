@@ -21,17 +21,16 @@ using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Codexus.Cipher.Protocol;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
 using OpenNEL_WinUI.Entities.Web.RentalGame;
-using OpenNEL.SDK.Entities;
-using OpenNEL.GameLauncher.Services.Java;
-using OpenNEL.GameLauncher.Utils;
-using OpenNEL.Interceptors;
-using OpenNEL.WPFLauncher.Entities.RentalGame;
+using Codexus.Development.SDK.Entities;
+using Codexus.Game.Launcher.Services.Java;
+using Codexus.Game.Launcher.Utils;
+using Codexus.Interceptors;
 using OpenNEL.Core.Utils;
 using Codexus.OpenSDK;
-using OpenNEL.WPFLauncher;
 using Serilog;
 
 namespace OpenNEL_WinUI.Handlers.Game.RentalServer;
@@ -209,7 +208,7 @@ public class JoinRentalGame
                 authorizedSignal.Wait();
             });
 
-        InterConnClient.GameStart(available.UserId, available.AccessToken, _request?.GameId ?? serverId).GetAwaiter().GetResult();
+        InterConn.GameStart(available.UserId, available.AccessToken, _request?.GameId ?? serverId).GetAwaiter().GetResult();
         GameManager.Instance.AddInterceptor(interceptor);
         _lastIp = interceptor.LocalAddress;
         _lastPort = interceptor.LocalPort;

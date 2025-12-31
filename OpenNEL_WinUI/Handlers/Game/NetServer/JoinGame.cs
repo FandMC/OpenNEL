@@ -24,10 +24,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
-using OpenNEL.WPFLauncher;
-using OpenNEL.GameLauncher.Services.Java;
-using OpenNEL.GameLauncher.Utils;
-using OpenNEL.Interceptors;
+using Codexus.Cipher.Protocol;
+using Codexus.Game.Launcher.Services.Java;
+using Codexus.Game.Launcher.Utils;
+using Codexus.Interceptors;
 using Codexus.OpenSDK;
 using OpenNEL_WinUI.Entities.Web.NetGame;
 using OpenNEL.Core.Utils;
@@ -99,7 +99,7 @@ public class JoinGame
             available.UserId,
             available.AccessToken,
             gameVersion,
-            new WPFLauncherClient(),
+            new WPFLauncher(),
             serverId,
             false);
         var mods = JsonSerializer.Serialize(serverMod);
@@ -162,7 +162,7 @@ public class JoinGame
             });
             authorizedSignal.Wait();
         });
-        InterConnClient.GameStart(available.UserId, available.AccessToken, _request.GameId).GetAwaiter().GetResult();
+        InterConn.GameStart(available.UserId, available.AccessToken, _request.GameId).GetAwaiter().GetResult();
         GameManager.Instance.AddInterceptor(interceptor);
         _lastIp = interceptor.LocalAddress;
         _lastPort = interceptor.LocalPort;

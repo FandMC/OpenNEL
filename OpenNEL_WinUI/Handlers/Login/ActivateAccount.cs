@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Text.Json;
+using Codexus.Cipher.Utils.Exception;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Utils;
 using Serilog;
@@ -66,7 +67,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                 list.Add(new { type = "accounts", items });
                 return list;
             }
-            catch (OpenNEL.MPay.Exceptions.CaptchaException)
+            catch (CaptchaException)
             {
                 return HandleCaptchaRequired(u);
             }

@@ -19,8 +19,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using OpenNEL.Interceptors;
-using OpenNEL.GameLauncher.Services.Java;
+using Codexus.Interceptors;
+using Codexus.Game.Launcher.Services.Java;
 using OpenNEL_WinUI.Entities.Web.NEL;
 
 namespace OpenNEL_WinUI.Manager;

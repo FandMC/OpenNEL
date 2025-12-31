@@ -26,10 +26,8 @@ using System.ComponentModel;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Entities.Web.NetGame;
 using Windows.ApplicationModel.DataTransfer;
-using OpenNEL.SDK.Entities;
-using OpenNEL.GameLauncher.Entities;
-using OpenNEL_WinUI.type;
-using OpenNEL_WinUI.Utils;
+using Codexus.Development.SDK.Entities;
+using Codexus.Game.Launcher.Entities;
 using Serilog;
 using static OpenNEL_WinUI.Utils.StaTaskRunner;
 

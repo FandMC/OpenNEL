@@ -59,16 +59,22 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenNEL.Core\OpenNEL.Core.csproj" />
-    <ProjectReference Include="..\Codexus.OpenSDK\Codexus.OpenSDK.csproj" />
-    <ProjectReference Include="..\OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" />
-    <ProjectReference Include="..\OpenNEL.MPay\OpenNEL.MPay.csproj" />
-    <ProjectReference Include="..\OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" />
-    <ProjectReference Include="..\OpenNEL.G79\OpenNEL.G79.csproj" />
-    <ProjectReference Include="..\OpenNEL.Pc4399\OpenNEL.Pc4399.csproj" />
-    <ProjectReference Include="..\OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" />
-    <ProjectReference Include="..\OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" />
-    <ProjectReference Include="..\OpenNEL.SDK\OpenNEL.SDK.csproj" />
     <ProjectReference Include="..\OpenNEL.IRC\OpenNEL.IRC.csproj" />
+    <Reference Include="Codexus.Cipher">
+      <HintPath>..\SDK\Codexus.Cipher.dll</HintPath>
+    </Reference>
+    <Reference Include="Codexus.Development.SDK">
+      <HintPath>..\SDK\Codexus.Development.SDK.dll</HintPath>
+    </Reference>
+    <Reference Include="Codexus.Interceptors">
+      <HintPath>..\SDK\Codexus.Interceptors.dll</HintPath>
+    </Reference>
+    <Reference Include="Codexus.Game.Launcher">
+      <HintPath>..\SDK\Codexus.Game.Launcher.dll</HintPath>
+    </Reference>
+    <Reference Include="Codexus.OpenSDK">
+      <HintPath>..\SDK\Codexus.OpenSDK.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging

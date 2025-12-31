@@ -18,13 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Codexus.Cipher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher.NetGame.Texture;
+using Codexus.Cipher.Protocol;
 using Codexus.OpenSDK;
-using OpenNEL.GameLauncher.Entities;
-using OpenNEL.GameLauncher.Services.Java;
-using OpenNEL.GameLauncher.Utils;
-using OpenNEL.WPFLauncher;
-using OpenNEL.WPFLauncher.Entities;
-using OpenNEL.WPFLauncher.Entities.NetGame.Texture;
+using Codexus.Game.Launcher.Entities;
+using Codexus.Game.Launcher.Services.Java;
+using Codexus.Game.Launcher.Utils;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
 using Serilog;
@@ -70,7 +70,7 @@ public class LaunchWhiteGame
     {
         Log.Debug("白端启动: userId={UserId}, serverId={ServerId}, role={Role}", userId, serverId, roleId);
 
-        var wpf = new WPFLauncherClient();
+        var wpf = new WPFLauncher();
         var details = AppState.X19.QueryNetGameDetailById(userId, accessToken, serverId);
         var address = AppState.X19.GetNetGameServerAddress(userId, accessToken, serverId);
         var version = details.Data!.McVersionList[0];
@@ -103,7 +103,7 @@ public class LaunchWhiteGame
         var launcher = LauncherService.CreateLauncher(launchRequest, accessToken, wpf, wpf.MPay.GameVersion, _progress ?? new Progress<EntityProgressUpdate>());
         GameManager.Instance.AddLauncher(launcher);
 
-        await InterConnClient.GameStart(userId, accessToken, serverId);
+        await InterConn.GameStart(userId, accessToken, serverId);
         await X19.InterconnectionApi.GameStartAsync(userId, accessToken, serverId);
 
         ReportProgress(100, "启动完成");

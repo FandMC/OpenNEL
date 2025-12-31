@@ -17,12 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using DotNetty.Buffers;
 using OpenNEL.IRC.Packet;
-using OpenNEL.SDK.Connection;
-using OpenNEL.SDK.Enums;
-using OpenNEL.SDK.Event;
-using OpenNEL.SDK.Extensions;
-using OpenNEL.SDK.Manager;
-using OpenNEL.SDK.Utils;
+using Codexus.Development.SDK.Connection;
+using Codexus.Development.SDK.Enums;
+using Codexus.Development.SDK.Event;
+using Codexus.Development.SDK.Extensions;
+using Codexus.Development.SDK.Manager;
+using Codexus.Development.SDK.Utils;
 using Serilog;
 using System.Collections.Concurrent;
 

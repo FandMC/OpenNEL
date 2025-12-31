@@ -16,10 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using DotNetty.Buffers;
-using OpenNEL.SDK.Connection;
-using OpenNEL.SDK.Enums;
-using OpenNEL.SDK.Extensions;
-using OpenNEL.SDK.Packet;
+using Codexus.Development.SDK.Connection;
+using Codexus.Development.SDK.Enums;
+using Codexus.Development.SDK.Extensions;
+using Codexus.Development.SDK.Packet;
 using Serilog;
 
 namespace OpenNEL.IRC.Packet;

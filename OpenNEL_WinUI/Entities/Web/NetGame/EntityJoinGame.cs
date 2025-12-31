@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Text.Json.Serialization;
-using OpenNEL.SDK.Entities;
+using Codexus.Development.SDK.Entities;
 
 namespace OpenNEL_WinUI.Entities.Web.NetGame;
 

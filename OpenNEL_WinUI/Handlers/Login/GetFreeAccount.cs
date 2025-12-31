@@ -22,7 +22,7 @@ using OpenNEL_WinUI.type;
 using Serilog;
 using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.Utils;
-using OpenNEL.SDK.Entities;
+using Codexus.Development.SDK.Entities;
 
 namespace OpenNEL_WinUI.Handlers.Login
 {

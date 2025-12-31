@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using OpenNEL.PluginLoader.Manager;
+using Codexus.Development.SDK.Manager;
 using OpenNEL_WinUI.Utils;
 using OpenNEL_WinUI.type;
 

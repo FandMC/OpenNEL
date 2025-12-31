@@ -18,8 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Linq;
 using System.Text.Json;
-using OpenNEL.MPay.Exceptions;
-using OpenNEL.WPFLauncher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher;
+using Codexus.Cipher.Utils.Exception;
 using OpenNEL_WinUI.Entities.Web.NEL;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Utils;

@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Linq;
 using System.Text.Json;
-using OpenNEL.WPFLauncher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.Entities;
 

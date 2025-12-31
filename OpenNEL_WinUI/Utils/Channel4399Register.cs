@@ -15,16 +15,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-using OpenNEL.Pc4399.Entities;
 using OpenNEL.Core.Utils;
-using OpenNEL.MPay.Exceptions;
-using OpenNEL.Core.Http;
-using OpenNEL.SDK.Entities;
+using Codexus.Development.SDK.Entities;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Codexus.Cipher.Entities.Pc4399;
+using Codexus.Cipher.Utils.Http;
 
 namespace OpenNEL_WinUI.Utils;
 

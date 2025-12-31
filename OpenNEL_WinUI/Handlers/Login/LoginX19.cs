@@ -18,9 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Collections;
 using System.Text.Json;
-using OpenNEL.MPay.Exceptions;
-using OpenNEL.WPFLauncher;
-using OpenNEL.WPFLauncher.Entities;
+using Codexus.Cipher.Protocol;
+using Codexus.Cipher.Utils.Exception;
 using OpenNEL_WinUI.Entities.Web;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
@@ -44,7 +43,7 @@ public class LoginX19
             var wpf = AppState.X19;
             var mPayUser = wpf.LoginWithEmailAsync(email, password).GetAwaiter().GetResult();
             var device = wpf.MPay.GetDevice();
-            var cookieRequest = WPFLauncherClient.GenerateCookie(mPayUser, device);
+            var cookieRequest = WPFLauncher.GenerateCookie(mPayUser, device);
             var (authOtp, channel) = wpf.LoginWithCookie(cookieRequest);
 
             UserManager.Instance.AddUserToMaintain(authOtp);

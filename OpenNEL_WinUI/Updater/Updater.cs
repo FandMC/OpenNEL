@@ -23,15 +23,15 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
-using OpenNEL.Core.Utils;
-using OpenNEL.GameLauncher.Utils;
-using OpenNEL.Core.Progress;
+using Codexus.Game.Launcher.Utils;
+using Codexus.Game.Launcher.Utils.Progress;
 using OpenNEL_WinUI.type;
 using Serilog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
 using SharpCompress.Common;
+using FileUtil = OpenNEL.Core.Utils.FileUtil;
 
 namespace OpenNEL_WinUI.Updater;
 

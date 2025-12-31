@@ -17,12 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Text.Json;
-using OpenNEL.PluginLoader.Manager;
 using Serilog;
 using System.Net.Http;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Codexus.Development.SDK.Manager;
 using OpenNEL_WinUI.Utils;
 
 namespace OpenNEL_WinUI.Handlers.Plugin

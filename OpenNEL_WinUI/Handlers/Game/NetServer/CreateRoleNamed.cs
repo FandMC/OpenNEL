@@ -17,9 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
 using System.Linq;
+using Codexus.Cipher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher.NetGame;
 using OpenNEL_WinUI.type;
-using OpenNEL.WPFLauncher.Entities;
-using OpenNEL.WPFLauncher.Entities.NetGame;
 using OpenNEL_WinUI.Entities.Web.NetGame;
 using Serilog;
 using OpenNEL_WinUI.Manager;
@@ -40,7 +40,7 @@ public class CreateRoleNamed
         {
             AppState.X19.CreateCharacter(last.UserId, last.AccessToken, serverId, name);
             if (AppState.Debug) Log.Information("角色创建成功: serverId={ServerId}, name={Name}", serverId, name);
-            Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
+            Codexus.Cipher.Entities.Entities<EntityGameCharacter> entities = AppState.X19.QueryNetGameCharacters(last.UserId, last.AccessToken, serverId);
             var items = entities.Data.Select(r => new RoleItem { Id = r.Name, Name = r.Name }).ToList();
             return new ServerRolesResult { Success = true, ServerId = serverId, Items = items };
         }

@@ -18,11 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Codexus.Cipher.Entities;
+using Codexus.Cipher.Entities.WPFLauncher.NetGame.Skin;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
 using Serilog;
-using OpenNEL.WPFLauncher.Entities;
-using OpenNEL.WPFLauncher.Entities.Skin;
 
 namespace OpenNEL_WinUI.Handlers.Skin;
 
@@ -53,7 +53,7 @@ public class GetFreeSkin
         {
             Log.Information("免费皮肤请求 offset={Offset} length={Length}", offset, length);
 
-            Entities<EntitySkin> list;
+            Codexus.Cipher.Entities.Entities<EntitySkin> list;
             try
             {
                 list = AppState.X19.GetFreeSkinList(last.UserId, last.AccessToken, offset, length);
@@ -65,7 +65,7 @@ public class GetFreeSkin
             }
 
             var baseData = list.Data;
-            var baseCount = baseData.Count;
+            var baseCount = baseData.Length;
             Log.Information("免费皮肤基础数量={Count}", baseCount);
 
             if (baseCount == 0)
@@ -73,7 +73,7 @@ public class GetFreeSkin
                 return new GetFreeSkinResult { Success = true, Items = new(), HasMore = false };
             }
 
-            Entities<EntitySkin>? detailed = null;
+            Codexus.Cipher.Entities.Entities<EntitySkin>? detailed = null;
             try
             {
                 detailed = AppState.X19.GetSkinDetails(last.UserId, last.AccessToken, list);
@@ -84,7 +84,7 @@ public class GetFreeSkin
             }
 
             var data = detailed?.Data ?? baseData;
-            Log.Information("皮肤详情数量={Count}", data.Count);
+            Log.Information("皮肤详情数量={Count}", data.Length);
 
             var items = data.Select(s => new SkinItemData
             {

@@ -4,14 +4,6 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Codexus.OpenSDK\Codexus.OpenSDK.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
   <Project Path="OpenNEL.Core\OpenNEL.Core.csproj" Type="Classic C#">
     <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
@@ -20,63 +12,7 @@
     <Configuration Solution="Release|x64" Project="Release|Any CPU" />
     <Configuration Solution="Release|x86" Project="Release|Any CPU" />
   </Project>
-  <Project Path="OpenNEL.GameLauncher\OpenNEL.GameLauncher.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.Interceptors\OpenNEL.Interceptors.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
   <Project Path="OpenNEL.IRC\OpenNEL.IRC.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.MPay\OpenNEL.MPay.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.Pc4399\OpenNEL.Pc4399.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.PluginLoader\OpenNEL.PluginLoader.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.SDK\OpenNEL.SDK.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
-    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
-    <Configuration Solution="Release|ARM64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
-    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
-  </Project>
-  <Project Path="OpenNEL.WPFLauncher\OpenNEL.WPFLauncher.csproj" Type="Classic C#">
     <Configuration Solution="Debug|ARM64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
     <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />

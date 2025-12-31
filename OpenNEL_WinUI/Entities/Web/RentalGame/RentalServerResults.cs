@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System.Collections.Generic;
 using System.ComponentModel;
-using OpenNEL.SDK.Entities;
+using Codexus.Development.SDK.Entities;
 
 namespace OpenNEL_WinUI.Entities.Web.RentalGame;
 
