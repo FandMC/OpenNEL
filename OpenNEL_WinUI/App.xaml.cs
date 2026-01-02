@@ -108,18 +108,15 @@ namespace OpenNEL_WinUI
             PacketManager.Instance.RegisterPacketFromAssembly(typeof(IrcManager).Assembly);
             PacketManager.Instance.EnsureRegistered();
             RegisterIrcHandler();
-            _ = Task.Run(() =>
+            try
             {
-                try
-                {
-                    PluginManager.Instance.EnsureUninstall();
-                    PluginManager.Instance.LoadPlugins(pluginDir);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "插件加载失败");
-                }
-            });
+                PluginManager.Instance.EnsureUninstall();
+                PluginManager.Instance.LoadPlugins(pluginDir);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "插件加载失败");
+            }
             await Task.CompletedTask;
         }
 

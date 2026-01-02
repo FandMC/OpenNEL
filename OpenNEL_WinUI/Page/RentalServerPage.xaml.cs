@@ -28,6 +28,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Codexus.Development.SDK.Entities;
 using OpenNEL_WinUI.Entities.Web.RentalGame;
 using Serilog;
+using OpenNEL_WinUI.Utils;
 using static OpenNEL_WinUI.Utils.StaTaskRunner;
 
 namespace OpenNEL_WinUI
@@ -122,14 +123,9 @@ namespace OpenNEL_WinUI
                     var r = await RunOnStaAsync(() => new OpenRentalServer().Execute(s.EntityId));
                     if (!r.Success) return;
 
-                    var accounts = UserManager.Instance.GetUsersNoDetails();
+                    var accounts = UserManager.Instance.GetAuthorizedAccounts();
                     var acctItems = accounts
-                        .Where(a => a.Authorized)
-                        .Select(a => new JoinRentalServerContent.OptionItem
-                        {
-                            Label = (string.IsNullOrWhiteSpace(a.Alias) ? a.UserId : a.Alias) + " (" + a.Channel + ")",
-                            Value = a.UserId
-                        })
+                        .Select(a => new JoinRentalServerContent.OptionItem { Label = a.Label, Value = a.Id })
                         .ToList();
 
                     var roleItems = r.Items.Select(x => new JoinRentalServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList();
@@ -149,22 +145,13 @@ namespace OpenNEL_WinUI
                                 if (rAcc.Success)
                                 {
                                     roleItems = rAcc.Items.Select(x => new JoinRentalServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList();
-                                    joinContent.SetRoles(roleItems);
+                                    DispatcherQueue.TryEnqueue(() => joinContent.SetRoles(roleItems));
                                 }
                             }
-                            catch { }
+                            catch (Exception ex) { Log.Debug(ex, "切换账号失败"); }
                         };
 
-                        var dlg = new ThemedContentDialog
-                        {
-                            XamlRoot = this.XamlRoot,
-                            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                            Title = "加入租赁服",
-                            Content = joinContent,
-                            PrimaryButtonText = "启动",
-                            CloseButtonText = "关闭",
-                            DefaultButton = ContentDialogButton.Primary
-                        };
+                        var dlg = DialogService.Create(XamlRoot, "加入租赁服", joinContent, "启动", null, "关闭");
                         joinContent.ParentDialog = dlg;
 
                         var result = await dlg.ShowAsync();
@@ -202,14 +189,11 @@ namespace OpenNEL_WinUI
                             if (rStart.Success)
                             {
                                 NotificationHost.ShowGlobal("启动成功", ToastLevel.Success);
-                                if (SettingManager.Instance.Get().AutoCopyIpOnStart && !string.IsNullOrWhiteSpace(rStart.Ip))
+                                var copyText = SettingManager.Instance.GetCopyIpText(rStart.Ip, rStart.Port);
+                                if (copyText != null)
                                 {
-                                    var text = rStart.Port > 0 ? $"{rStart.Ip}:{rStart.Port}" : rStart.Ip;
-                                    var dp = new DataPackage();
-                                    dp.SetText(text);
-                                    Clipboard.SetContent(dp);
-                                    Clipboard.Flush();
-                                    NotificationHost.ShowGlobal("地址已复制到剪切板", ToastLevel.Success);
+                                    var dp = new DataPackage(); dp.SetText(copyText); Clipboard.SetContent(dp); Clipboard.Flush();
+                                    NotificationHost.ShowGlobal("地址已复制", ToastLevel.Success);
                                 }
                             }
                             else
@@ -221,16 +205,7 @@ namespace OpenNEL_WinUI
                         else if (result == ContentDialogResult.None && joinContent.AddRoleRequested)
                         {
                             var addRoleContent = new AddRoleContent();
-                            var dlg2 = new ThemedContentDialog
-                            {
-                                XamlRoot = this.XamlRoot,
-                                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                                Title = "添加角色",
-                                Content = addRoleContent,
-                                PrimaryButtonText = "添加",
-                                CloseButtonText = "关闭",
-                                DefaultButton = ContentDialogButton.Primary
-                            };
+                            var dlg2 = DialogService.Create(XamlRoot, "添加角色", addRoleContent, "添加", null, "关闭");
                             var addRes = await dlg2.ShowAsync();
                             if (addRes == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(addRoleContent.RoleName))
                             {
@@ -280,7 +255,7 @@ namespace OpenNEL_WinUI
                 if (PrevPageButton != null) PrevPageButton.IsEnabled = _page > 1;
                 if (NextPageButton != null) NextPageButton.IsEnabled = _hasMore;
             }
-            catch { }
+            catch (Exception ex) { Log.Debug(ex, "更新分页失败"); }
         }
 
         private void PrevPageButton_Click(object sender, RoutedEventArgs e)

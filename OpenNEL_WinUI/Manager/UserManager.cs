@@ -200,6 +200,12 @@ namespace OpenNEL_WinUI.Manager;
 		}).ToList();
 	}
 
+	public List<(string Id, string Label)> GetAuthorizedAccounts() =>
+		_users.Values
+			.Where(a => a.Authorized)
+			.Select(a => (a.UserId, (string.IsNullOrWhiteSpace(a.Alias) ? a.UserId : a.Alias) + " (" + a.Channel + ")"))
+			.ToList();
+
 	public EntityUser? GetUserByEntityId(string entityId)
 	{
 		if (!_users.TryGetValue(entityId, out EntityUser value))

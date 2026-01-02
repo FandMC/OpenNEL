@@ -66,6 +66,6 @@ public static class IrcEventHandler
     static void OnChatReceived(object? sender, IrcChatEventArgs e)
     {
         if (sender is not IrcClient client) return;
-        CChatCommandIrc.SendLocalMessage(client.Connection, $"§b[OpenNEL {e.Username}]§r <{e.PlayerName}> {e.Message}");
+        CChatCommandIrc.SendLocalMessage(client.Connection, $"{e.Username} <{e.PlayerName}> {e.Message}");
     }
 }

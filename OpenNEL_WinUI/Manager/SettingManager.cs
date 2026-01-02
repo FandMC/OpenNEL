@@ -64,6 +64,12 @@ public class SettingManager
     public void ApplyTheme(ContentDialog dialog) => dialog.RequestedTheme = GetAppTheme();
     public void ApplyTheme(FrameworkElement element) => element.RequestedTheme = GetAppTheme();
 
+    public string? GetCopyIpText(string? ip, int port)
+    {
+        if (!_settings.AutoCopyIpOnStart || string.IsNullOrWhiteSpace(ip)) return null;
+        return port > 0 ? $"{ip}:{port}" : ip;
+    }
+
     public void Update(SettingData data)
     {
         _settings = data ?? new SettingData();

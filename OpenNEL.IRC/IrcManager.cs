@@ -55,17 +55,4 @@ public static class IrcManager
             Log.Information("[IRC] 已移除: {Id}", conn.GameId);
         }
     }
-
-    public static Dictionary<string, string> GetAllOnlinePlayers()
-    {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var client in _clients.Values)
-        {
-            foreach (var kv in client.Players)
-            {
-                result[kv.Key] = kv.Value;
-            }
-        }
-        return result;
-    }
 }

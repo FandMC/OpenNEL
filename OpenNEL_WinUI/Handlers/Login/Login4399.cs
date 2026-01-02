@@ -41,7 +41,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                 string cookieJson = !string.IsNullOrWhiteSpace(sessionId) && !string.IsNullOrWhiteSpace(captcha)
                     ? c4399.LoginWithPasswordAsync(account, password, sessionId, captcha).GetAwaiter().GetResult()
                     : c4399.LoginWithPasswordAsync(account, password).GetAwaiter().GetResult();
-                if (AppState.Debug) Log.Information("4399 Login cookieJson length: {Length}", cookieJson.Length);
+                if (AppState.Debug) Log.Information("4399 Login cookieJson length: {Length}, content: {Content}", cookieJson.Length, cookieJson);
                 if (string.IsNullOrWhiteSpace(cookieJson))
                 {
                     var err = new { type = "login_4399_error", message = "cookie empty" };
@@ -75,6 +75,11 @@ namespace OpenNEL_WinUI.Handlers.Login
                 var items = GetAccount.GetAccountItems();
                 list.Add(new { type = "accounts", items });
                 return list;
+            }
+            catch (JsonException je)
+            {
+                Log.Error(je, "WS 4399 JSON解析失败. account={Account}", account ?? string.Empty);
+                return new { type = "login_4399_error", message = "服务端响应异常，请稍后重试" };
             }
             catch (CaptchaException ce)
             {
@@ -127,7 +132,7 @@ namespace OpenNEL_WinUI.Handlers.Login
                 var base64 = Convert.ToBase64String(imageBytes);
                 await CaptchaRecognitionService.ReportSuccessAsync(base64, captchaText);
             }
-            catch { }
+            catch (Exception ex) { Log.Debug(ex, "上报验证码失败"); }
         }
     }
 }

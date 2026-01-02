@@ -32,7 +32,7 @@ using OpenNEL_WinUI.Handlers.Plugin;
 using OpenNEL_WinUI.Manager;
 using OpenNEL.Core.Utils;
 using OpenNEL_WinUI.type;
-using System.Text.Json;
+using Serilog;
 
 namespace OpenNEL_WinUI
 {
@@ -113,42 +113,21 @@ namespace OpenNEL_WinUI
 
         async System.Threading.Tasks.Task TryAutoLoginAsync()
         {
-            if (!AuthManager.Instance.IsLoggedIn) return;
-            try
+            if (await LoginHelper.TryAutoLoginAsync())
             {
-                var result = await System.Threading.Tasks.Task.Run(async () => await AuthManager.Instance.VerifyAsync());
-                if (!result.Success) return;
-                _ = PrepareAfterLoginAsync("已自动登录，欢迎回来");
-            }
-            catch
-            {
+                await CompleteLoginAsync("已自动登录，欢迎回来");
             }
         }
 
-        async System.Threading.Tasks.Task<bool> PrepareAfterLoginAsync(string toastText)
+        async System.Threading.Tasks.Task<bool> CompleteLoginAsync(string toastText)
         {
-            try
-            {
-                var prepared = await System.Threading.Tasks.Task.Run(async () =>
-                {
-                    CrcSalt.TokenProvider = () => AuthManager.Instance.Token ?? "";
-                    CrcSalt.InvalidateCache();
-                    await CrcSalt.Compute();
-                    AppState.Services?.RefreshYggdrasil();
-                    return true;
-                });
-                if (!prepared) return false;
-                InitializeMainNavigationIfNeeded();
-                LoginOverlay.Visibility = Visibility.Collapsed;
-                NavView.Visibility = Visibility.Visible;
-                NotificationHost.ShowGlobal(toastText, ToastLevel.Success);
-                _ = ShowFirstRunInstallDialogAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            if (!await LoginHelper.PrepareAfterLoginAsync()) return false;
+            InitializeMainNavigationIfNeeded();
+            LoginOverlay.Visibility = Visibility.Collapsed;
+            NavView.Visibility = Visibility.Visible;
+            NotificationHost.ShowGlobal(toastText, ToastLevel.Success);
+            _ = ShowFirstRunInstallDialogAsync();
+            return true;
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -209,7 +188,7 @@ namespace OpenNEL_WinUI
                     _currentBackdrop = bd;
                 }
             }
-            catch { }
+            catch (Exception ex) { Log.Warning(ex, "应用主题失败"); }
         }
 
 
@@ -239,7 +218,7 @@ namespace OpenNEL_WinUI
                 tb.ButtonHoverBackgroundColor = ColorUtil.HoverBackgroundForTheme(theme);
                 tb.ButtonPressedBackgroundColor = ColorUtil.PressedBackgroundForTheme(theme);
             }
-            catch { }
+            catch (Exception ex) { Log.Warning(ex, "更新标题栏颜色失败"); }
         }
 
         async System.Threading.Tasks.Task ShowFirstRunInstallDialogAsync()
@@ -256,7 +235,7 @@ namespace OpenNEL_WinUI
                         var data = OpenNEL_WinUI.Manager.SettingManager.Instance.Get();
                         OpenNEL_WinUI.Manager.SettingManager.Instance.Update(data);
                     }
-                    catch { }
+                    catch (Exception ex) { Log.Debug(ex, "保存设置失败"); }
                     return;
                 }
                 if (hasHp && !hasBase)
@@ -279,15 +258,15 @@ namespace OpenNEL_WinUI
                         {
                             _ = PluginHandler.InstallBase1200Async();
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Warning(ex, "安装前置失败"); }
                         d2.IsPrimaryButtonEnabled = true;
-                        try { d2.Hide(); } catch { }
+                        try { d2.Hide(); } catch (Exception ex) { Log.Debug(ex, "关闭对话框失败"); }
                         try
                         {
                             var data = OpenNEL_WinUI.Manager.SettingManager.Instance.Get();
                             OpenNEL_WinUI.Manager.SettingManager.Instance.Update(data);
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Debug(ex, "保存设置失败"); }
                     };
                     d2.Closed += (s, e) =>
                     {
@@ -296,7 +275,7 @@ namespace OpenNEL_WinUI
                             var data = OpenNEL_WinUI.Manager.SettingManager.Instance.Get();
                             OpenNEL_WinUI.Manager.SettingManager.Instance.Update(data);
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Debug(ex, "保存设置失败"); }
                     };
                     await d2.ShowAsync();
                     return;
@@ -321,15 +300,15 @@ namespace OpenNEL_WinUI
                         {
                             _ = PluginHandler.InstallDefaultProtocolsAsync();
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Warning(ex, "安装布吉岛协议失败"); }
                         d.IsPrimaryButtonEnabled = true;
-                        try { d.Hide(); } catch { }
+                        try { d.Hide(); } catch (Exception ex) { Log.Debug(ex, "关闭对话框失败"); }
                         try
                         {
                             var data = OpenNEL_WinUI.Manager.SettingManager.Instance.Get();
                             OpenNEL_WinUI.Manager.SettingManager.Instance.Update(data);
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Debug(ex, "保存设置失败"); }
                     };
                     d.Closed += (s, e) =>
                     {
@@ -338,12 +317,12 @@ namespace OpenNEL_WinUI
                             var data = OpenNEL_WinUI.Manager.SettingManager.Instance.Get();
                             OpenNEL_WinUI.Manager.SettingManager.Instance.Update(data);
                         }
-                        catch { }
+                        catch (Exception ex) { Log.Debug(ex, "保存设置失败"); }
                     };
                     await d.ShowAsync();
                 }
             }
-            catch { }
+            catch (Exception ex) { Log.Warning(ex, "首次运行对话框失败"); }
         }
 
         private void AuthNavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -385,7 +364,7 @@ namespace OpenNEL_WinUI
                     CaptchaImage.Source = bitmap;
                 }
             }
-            catch { }
+            catch (Exception ex) { Log.Warning(ex, "加载验证码失败"); }
         }
 
         private void RefreshCaptcha_Click(object sender, RoutedEventArgs e)
@@ -401,35 +380,29 @@ namespace OpenNEL_WinUI
             {
                 var username = LoginUsername.Text?.Trim() ?? "";
                 var password = LoginPassword.Password ?? "";
-                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-                {
-                    LoginError.Text = "用户名和密码不能为空";
-                    LoginError.Visibility = Visibility.Visible;
-                    return;
-                }
-                var result = await System.Threading.Tasks.Task.Run(async () => await AuthManager.Instance.LoginAsync(username, password));
+                var result = await LoginHelper.LoginAsync(username, password);
                 if (result.Success)
                 {
-                    var welcomeName = string.IsNullOrEmpty(result.Username) ? username : result.Username;
-                    var ok = await PrepareAfterLoginAsync($"欢迎 {welcomeName}");
-                    if (!ok)
-                    {
-                        LoginError.Text = "登录成功，但初始化失败";
-                        LoginError.Visibility = Visibility.Visible;
-                        LoginOverlay.Visibility = Visibility.Visible;
-                        NavView.Visibility = Visibility.Collapsed;
-                    }
+                    var ok = await CompleteLoginAsync($"欢迎 {result.WelcomeName}");
+                    if (!ok) ShowLoginError("登录成功，但初始化失败");
                 }
                 else
                 {
-                    LoginError.Text = result.Message ?? "登录失败";
-                    LoginError.Visibility = Visibility.Visible;
+                    ShowLoginError(result.Error ?? "登录失败");
                 }
             }
             finally
             {
                 LoginButton.IsEnabled = true;
             }
+        }
+
+        void ShowLoginError(string msg)
+        {
+            LoginError.Text = msg;
+            LoginError.Visibility = Visibility.Visible;
+            LoginOverlay.Visibility = Visibility.Visible;
+            NavView.Visibility = Visibility.Collapsed;
         }
 
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
@@ -441,35 +414,15 @@ namespace OpenNEL_WinUI
                 var username = RegisterUsername.Text?.Trim() ?? "";
                 var password = RegisterPassword.Password ?? "";
                 var captchaText = RegisterCaptchaText.Text?.Trim() ?? "";
-                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-                {
-                    RegisterError.Text = "用户名和密码不能为空";
-                    RegisterError.Visibility = Visibility.Visible;
-                    return;
-                }
-                if (string.IsNullOrEmpty(captchaText))
-                {
-                    RegisterError.Text = "请输入验证码";
-                    RegisterError.Visibility = Visibility.Visible;
-                    return;
-                }
-                var result = await System.Threading.Tasks.Task.Run(async () => await AuthManager.Instance.RegisterAsync(username, password, _currentCaptchaId, captchaText));
+                var result = await LoginHelper.RegisterAsync(username, password, _currentCaptchaId, captchaText);
                 if (result.Success)
                 {
-                    var welcomeName = string.IsNullOrEmpty(result.Username) ? username : result.Username;
-                    var ok = await PrepareAfterLoginAsync($"欢迎 {welcomeName}");
-                    if (!ok)
-                    {
-                        RegisterError.Text = "注册成功，但初始化失败";
-                        RegisterError.Visibility = Visibility.Visible;
-                        LoginOverlay.Visibility = Visibility.Visible;
-                        NavView.Visibility = Visibility.Collapsed;
-                    }
+                    var ok = await CompleteLoginAsync($"欢迎 {result.WelcomeName}");
+                    if (!ok) ShowRegisterError("注册成功，但初始化失败");
                 }
                 else
                 {
-                    RegisterError.Text = result.Message ?? "注册失败";
-                    RegisterError.Visibility = Visibility.Visible;
+                    ShowRegisterError(result.Error ?? "注册失败");
                     _ = LoadCaptchaAsync();
                 }
             }
@@ -477,6 +430,14 @@ namespace OpenNEL_WinUI
             {
                 RegisterButton.IsEnabled = true;
             }
+        }
+
+        void ShowRegisterError(string msg)
+        {
+            RegisterError.Text = msg;
+            RegisterError.Visibility = Visibility.Visible;
+            LoginOverlay.Visibility = Visibility.Visible;
+            NavView.Visibility = Visibility.Collapsed;
         }
 
         

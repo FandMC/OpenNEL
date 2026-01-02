@@ -29,7 +29,9 @@ using Codexus.Game.Launcher.Services.Java;
 using Codexus.Game.Launcher.Utils;
 using Codexus.Interceptors;
 using Codexus.OpenSDK;
+using Codexus.Development.SDK.Entities;
 using OpenNEL_WinUI.Entities.Web.NetGame;
+using Codexus.Game.Launcher.Entities;
 using OpenNEL.Core.Utils;
 using Serilog;
 
@@ -40,6 +42,24 @@ public class JoinGame
     private EntityJoinGame? _request;
     private string _lastIp = string.Empty;
     private int _lastPort;
+
+    public async Task<JoinGameResult> Execute(string accountId, string serverId, string serverName, string roleId)
+    {
+        new SelectAccount().Execute(accountId);
+        var req = BuildRequest(serverId, serverName, roleId);
+        return await Execute(req);
+    }
+
+    static EntityJoinGame BuildRequest(string serverId, string serverName, string roleId)
+    {
+        var req = new EntityJoinGame { ServerId = serverId, ServerName = serverName, Role = roleId, GameId = serverId };
+        var set = SettingManager.Instance.Get();
+        var enabled = set?.Socks5Enabled ?? false;
+        req.Socks5 = (!enabled || string.IsNullOrWhiteSpace(set?.Socks5Address))
+            ? new EntitySocks5 { Address = string.Empty, Port = 0, Username = string.Empty, Password = string.Empty }
+            : new EntitySocks5 { Address = set!.Socks5Address, Port = set.Socks5Port, Username = set.Socks5Username, Password = set.Socks5Password };
+        return req;
+    }
 
     public async Task<JoinGameResult> Execute(EntityJoinGame request)
     {

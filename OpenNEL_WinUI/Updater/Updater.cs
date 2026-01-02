@@ -31,7 +31,6 @@ using SharpCompress.Archives;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
 using SharpCompress.Common;
-using FileUtil = OpenNEL.Core.Utils.FileUtil;
 
 namespace OpenNEL_WinUI.Updater;
 

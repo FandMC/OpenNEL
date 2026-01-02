@@ -16,393 +16,235 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using System;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using OpenNEL_WinUI.Handlers.Game.NetServer;
 using System.ComponentModel;
-using OpenNEL_WinUI.Manager;
-using OpenNEL_WinUI.Entities.Web.NetGame;
-using Windows.ApplicationModel.DataTransfer;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Codexus.Development.SDK.Entities;
 using Codexus.Game.Launcher.Entities;
+using OpenNEL_WinUI.Entities.Web.NetGame;
+using OpenNEL_WinUI.Handlers.Game.NetServer;
+using OpenNEL_WinUI.Manager;
+using OpenNEL_WinUI.Utils;
 using Serilog;
+using Windows.ApplicationModel.DataTransfer;
 using static OpenNEL_WinUI.Utils.StaTaskRunner;
 
-namespace OpenNEL_WinUI
+namespace OpenNEL_WinUI;
+
+public sealed partial class NetworkServerPage : Page, INotifyPropertyChanged
 {
-    public sealed partial class NetworkServerPage : Page, INotifyPropertyChanged
+    public static string PageTitle => "网络服务器";
+
+    readonly SemaphoreSlim _imageLimiter = new(6);
+    CancellationTokenSource? _cts;
+    int _page = 1;
+    int _refreshId;
+    bool _hasMore;
+    bool _notLogin;
+
+    public ObservableCollection<ServerItem> Servers { get; } = new();
+    public bool NotLogin { get => _notLogin; private set { _notLogin = value; OnPropertyChanged(nameof(NotLogin)); } }
+
+    public NetworkServerPage()
     {
-        public static string PageTitle => "网络服务器";
-        public ObservableCollection<ServerItem> Servers { get; } = new ObservableCollection<ServerItem>();
-        private bool _notLogin;
-        public bool NotLogin { get => _notLogin; private set { _notLogin = value; OnPropertyChanged(nameof(NotLogin)); } }
-        private System.Threading.CancellationTokenSource _cts;
-        private int _page = 1;
-        private const int PageSize = 20;
-        private bool _hasMore;
-        private int _refreshId;
+        InitializeComponent();
+        DataContext = this;
+        Loaded += async (_, _) => await RefreshAsync();
+    }
 
-        public NetworkServerPage()
+    // ========== 数据加载 ==========
+    async Task RefreshAsync(string? keyword = null)
+    {
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+        var myId = Interlocked.Increment(ref _refreshId);
+
+        var result = await RunOnStaAsync(() =>
         {
-            InitializeComponent();
-            this.DataContext = this;
-            this.Loaded += NetworkServerPage_Loaded;
+            if (ct.IsCancellationRequested) return new ListServersResult();
+            var offset = Math.Max(0, (_page - 1) * 20);
+            return string.IsNullOrWhiteSpace(keyword)
+                ? new ListServers().Execute(offset, 20)
+                : new SearchServers().Execute(keyword, offset, 20);
+        });
+        if (myId != _refreshId) return;
+
+        NotLogin = result.NotLogin;
+        Servers.Clear();
+        _hasMore = result.HasMore;
+
+        if (!result.Success) { UpdatePaging(); return; }
+
+        if (_page == 1 && DateTime.Now <= new DateTime(2026, 1, 5))
+            Servers.Add(new ServerItem { EntityId = "77114517833647104", Name = "花雨庭(2026.1.5 R.I.P)" });
+
+        foreach (var item in result.Items)
+        {
+            if (ct.IsCancellationRequested) break;
+            Servers.Add(item);
+            _ = LoadImageAsync(item, myId, ct);
         }
+        UpdatePaging();
+    }
 
-        private async void NetworkServerPage_Loaded(object sender, RoutedEventArgs e)
+    async Task LoadImageAsync(ServerItem item, int myId, CancellationToken ct)
+    {
+        await _imageLimiter.WaitAsync(ct);
+        try
         {
-            await RefreshServers(string.Empty);
+            if (myId != _refreshId || ct.IsCancellationRequested) return;
+            var d = await RunOnStaAsync(() => new GetServersDetail().Execute(item.EntityId));
+            if (d.Success && d.Images.Count > 0 && myId == _refreshId)
+                DispatcherQueue.TryEnqueue(() => item.ImageUrl = d.Images[0]);
         }
+        catch (Exception ex) { Log.Debug(ex, "加载图片失败"); }
+        finally { _imageLimiter.Release(); }
+    }
 
-        private async Task RefreshServers(string keyword)
+    // ========== UI 事件 ==========
+    void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _page = 1;
+        Servers.Clear();
+        UpdatePaging();
+        _ = RefreshAsync((sender as TextBox)?.Text);
+    }
+
+    async void SpecifyServerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var id = await DialogService.ShowInputAsync(XamlRoot, "指定服务器", "请输入服务器号");
+        if (string.IsNullOrWhiteSpace(id)) { if (id != null) NotificationHost.ShowGlobal("请输入服务器号", ToastLevel.Error); return; }
+        await JoinServerAsync(id, id);
+    }
+
+    async void JoinServerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: ServerItem s }) await JoinServerAsync(s.EntityId, s.Name);
+    }
+
+    void PrevPageButton_Click(object sender, RoutedEventArgs e) { if (_page > 1) { _page--; _ = RefreshAsync(SearchBox?.Text); } }
+    void NextPageButton_Click(object sender, RoutedEventArgs e) { if (_hasMore) { _page++; _ = RefreshAsync(SearchBox?.Text); } }
+
+    void ServersGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (ServersGrid.ItemsPanelRoot is ItemsWrapGrid panel && e.NewSize.Width > 0)
+            panel.ItemWidth = Math.Max(240, (e.NewSize.Width - 24) / 4);
+    }
+
+    // ========== 加入服务器 ==========
+    async Task JoinServerAsync(string serverId, string serverName)
+    {
+        var openResult = await RunOnStaAsync(() => new OpenServer().Execute(serverId));
+        if (!openResult.Success) { await DialogService.ShowErrorAsync(XamlRoot, openResult.Message ?? "打开失败"); return; }
+
+        var accounts = UserManager.Instance.GetAuthorizedAccounts();
+        var roles = openResult.Items;
+
+        while (true)
         {
-            var cts = _cts;
-            cts?.Cancel();
-            _cts = new System.Threading.CancellationTokenSource();
-            var token = _cts.Token;
-            var my = System.Threading.Interlocked.Increment(ref _refreshId);
-
-            ListServersResult r;
-            try
+            var content = new JoinServerContent();
+            content.SetAccounts(accounts.Select(a => new JoinServerContent.OptionItem { Label = a.Label, Value = a.Id }).ToList());
+            content.SetRoles(roles.Select(r => new JoinServerContent.OptionItem { Label = r.Name, Value = r.Id }).ToList());
+            content.AccountChanged += async id =>
             {
-                r = await RunOnStaAsync(() =>
-                {
-                    if (token.IsCancellationRequested) return new ListServersResult();
-                    var offset = Math.Max(0, (_page - 1) * PageSize);
-                    if (string.IsNullOrWhiteSpace(keyword))
-                        return new ListServers().Execute(offset, PageSize);
-                    return new SearchServers().Execute(keyword, offset, PageSize);
-                });
-            }
-            catch
-            {
-                NotLogin = false;
-                Servers.Clear();
-                UpdatePageView();
-                return;
-            }
-
-            if (my != _refreshId) return;
-            if (r.NotLogin)
-            {
-                NotLogin = true;
-                Servers.Clear();
-                _page = 1;
-                _hasMore = false;
-                UpdatePageView();
-                return;
-            }
-
-            NotLogin = false;
-            Servers.Clear();
-            _hasMore = r.HasMore;
-
-            if (_page == 1 && DateTime.Now <= new DateTime(2026, 1, 5))
-            {
-                Servers.Add(new ServerItem { EntityId = "77114517833647104", Name = "花雨庭(2026.1.5 R.I.P)", ImageUrl = string.Empty });
-            }
-
-            var limiter = new System.Threading.SemaphoreSlim(6);
-            foreach (var item in r.Items)
-            {
-                if (my != _refreshId || token.IsCancellationRequested) break;
-                Servers.Add(item);
-                _ = Task.Run(async () =>
-                {
-                    await limiter.WaitAsync();
-                    try
-                    {
-                        if (my != _refreshId || token.IsCancellationRequested) return;
-                        var d = await RunOnStaAsync(() => new GetServersDetail().Execute(item.EntityId));
-                        if (my != _refreshId || token.IsCancellationRequested) return;
-                        if (d.Success && d.Images.Count > 0)
-                        {
-                            var url = d.Images[0];
-                            DispatcherQueue.TryEnqueue(() =>
-                            {
-                                if (my != _refreshId || token.IsCancellationRequested) return;
-                                item.ImageUrl = url;
-                            });
-                        }
-                    }
-                    catch { }
-                    finally { try { limiter.Release(); } catch { } }
-                });
-            }
-            UpdatePageView();
-        }
-
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            var q = (sender as TextBox)?.Text ?? string.Empty;
-            _page = 1;
-            Servers.Clear();
-            UpdatePageView();
-            _ = RefreshServers(q);
-        }
-
-        private async void SpecifyServerButton_Click(object sender, RoutedEventArgs e)
-        {
-            var inputBox = new TextBox
-            {
-                PlaceholderText = "请输入服务器号",
-                Width = 300
+                await RunOnStaAsync(() => new SelectAccount().Execute(id));
+                var r = await RunOnStaAsync(() => new OpenServer().ExecuteForAccount(id, serverId));
+                if (r.Success) { roles = r.Items; DispatcherQueue.TryEnqueue(() => content.SetRoles(roles.Select(x => new JoinServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList())); }
             };
 
-            var dlg = new ThemedContentDialog
-            {
-                XamlRoot = this.XamlRoot,
-                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                Title = "指定服务器",
-                Content = inputBox,
-                PrimaryButtonText = "加入",
-                CloseButtonText = "取消",
-                DefaultButton = ContentDialogButton.Primary
-            };
-
+            var dlg = DialogService.Create(XamlRoot, "加入服务器", content, "启动", "白端", "关闭");
+            content.ParentDialog = dlg;
             var result = await dlg.ShowAsync();
-            if (result != ContentDialogResult.Primary) return;
+            var accId = content.SelectedAccountId;
+            var roleId = content.SelectedRoleId;
 
-            var serverId = inputBox.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(serverId))
+            if (result == ContentDialogResult.Primary)
             {
-                NotificationHost.ShowGlobal("请输入服务器号", ToastLevel.Error);
-                return;
+                if (string.IsNullOrWhiteSpace(accId) || string.IsNullOrWhiteSpace(roleId)) continue;
+                await LaunchGameAsync(accId, serverId, serverName, roleId);
+                break;
             }
-
-            await JoinServerById(serverId, serverId);
+            if (result == ContentDialogResult.Secondary)
+            {
+                if (string.IsNullOrWhiteSpace(accId) || string.IsNullOrWhiteSpace(roleId)) continue;
+                LaunchWhiteGame(accId, serverId, serverName, roleId);
+                break;
+            }
+            if (result == ContentDialogResult.None && content.AddRoleRequested)
+            {
+                var newRoles = await AddRoleAsync(serverId);
+                if (newRoles != null) roles = newRoles;
+                content.ResetAddRoleRequested();
+                continue;
+            }
+            break;
         }
+    }
 
-        private async void JoinServerButton_Click(object sender, RoutedEventArgs e)
+    async Task LaunchGameAsync(string accId, string serverId, string serverName, string roleId)
+    {
+        NotificationHost.ShowGlobal("正在准备游戏资源...", ToastLevel.Success);
+        Log.Information("启动游戏: Server={Server}, Role={Role}", serverId, roleId);
+        var r = await Task.Run(async () => await new JoinGame().Execute(accId, serverId, serverName, roleId));
+        if (r.Success)
         {
-            if (sender is Button btn && btn.Tag is ServerItem s)
+            NotificationHost.ShowGlobal("启动成功", ToastLevel.Success);
+            var copyText = SettingManager.Instance.GetCopyIpText(r.Ip, r.Port);
+            if (copyText != null)
             {
-                await JoinServerById(s.EntityId, s.Name);
+                var dp = new DataPackage(); dp.SetText(copyText); Clipboard.SetContent(dp); Clipboard.Flush();
+                NotificationHost.ShowGlobal("地址已复制", ToastLevel.Success);
             }
         }
+    }
 
-        private async Task JoinServerById(string serverId, string serverName)
+    void LaunchWhiteGame(string accId, string serverId, string serverName, string roleId)
+    {
+        NotificationHost.ShowGlobal("正在准备白端资源...", ToastLevel.Success);
+        var progress = new Progress<EntityProgressUpdate>(u =>
+        {
+            Log.Information("白端: {Msg} ({P}%)", u.Message, u.Percent);
+            DispatcherQueue.TryEnqueue(() => NotificationHost.ShowGlobal($"白端: {u.Message} ({u.Percent}%)", ToastLevel.Normal));
+        });
+        _ = Task.Run(async () =>
         {
             try
             {
-                var r = await RunOnStaAsync(() => new OpenServer().Execute(serverId));
-                if (!r.Success) return;
-
-                var accounts = UserManager.Instance.GetUsersNoDetails();
-                var acctItems = accounts
-                    .Where(a => a.Authorized)
-                    .Select(a => new JoinServerContent.OptionItem
-                    {
-                        Label = (string.IsNullOrWhiteSpace(a.Alias) ? a.UserId : a.Alias) + " (" + a.Channel + ")",
-                        Value = a.UserId
-                    })
-                    .ToList();
-
-                var roleItems = r.Items.Select(x => new JoinServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList();
-
-                while (true)
-                {
-                    var joinContent = new JoinServerContent();
-                    joinContent.SetAccounts(acctItems);
-                    joinContent.SetRoles(roleItems);
-                    joinContent.AccountChanged += async (accountId) =>
-                    {
-                        try
-                        {
-                            await RunOnStaAsync(() => new SelectAccount().Execute(accountId));
-                            var rAcc = await RunOnStaAsync(() => new OpenServer().ExecuteForAccount(accountId, serverId));
-                            if (rAcc.Success)
-                            {
-                                roleItems = rAcc.Items.Select(x => new JoinServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList();
-                                joinContent.SetRoles(roleItems);
-                            }
-                        }
-                        catch { }
-                    };
-
-                    var dlg = new ThemedContentDialog
-                    {
-                        XamlRoot = this.XamlRoot,
-                        Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                        Title = "加入服务器",
-                        Content = joinContent,
-                        PrimaryButtonText = "启动",
-                        SecondaryButtonText = "白端",
-                        CloseButtonText = "关闭",
-                        DefaultButton = ContentDialogButton.Primary
-                    };
-                    joinContent.ParentDialog = dlg;
-
-                    var result = await dlg.ShowAsync();
-                    if (result == ContentDialogResult.Primary)
-                    {
-                        var accId = joinContent.SelectedAccountId;
-                        var roleId = joinContent.SelectedRoleId;
-                        if (string.IsNullOrWhiteSpace(accId) || string.IsNullOrWhiteSpace(roleId)) continue;
-
-                        NotificationHost.ShowGlobal("正在准备游戏资源，请稍后", ToastLevel.Success);
-                        await RunOnStaAsync(() => new SelectAccount().Execute(accId));
-
-                        var req = new EntityJoinGame { ServerId = serverId, ServerName = serverName, Role = roleId, GameId = serverId };
-                        var set = SettingManager.Instance.Get();
-                        var enabled = set?.Socks5Enabled ?? false;
-                        req.Socks5 = (!enabled || string.IsNullOrWhiteSpace(set?.Socks5Address))
-                            ? new EntitySocks5 { Address = string.Empty, Port = 0, Username = string.Empty, Password = string.Empty }
-                            : new EntitySocks5 { Address = set!.Socks5Address, Port = set.Socks5Port, Username = set.Socks5Username, Password = set.Socks5Password };
-
-                        Log.Information("准备传递 SOCKS5: Enabled={Enabled}, Address={Addr}, Port={Port}, User={User}", enabled, req.Socks5.Address, req.Socks5.Port, req.Socks5.Username);
-                        var rStart = await Task.Run(async () => await new JoinGame().Execute(req));
-
-                        if (rStart.Success)
-                        {
-                            NotificationHost.ShowGlobal("启动成功", ToastLevel.Success);
-                            if (SettingManager.Instance.Get().AutoCopyIpOnStart && !string.IsNullOrWhiteSpace(rStart.Ip))
-                            {
-                                var text = rStart.Port > 0 ? $"{rStart.Ip}:{rStart.Port}" : rStart.Ip;
-                                var dp = new DataPackage();
-                                dp.SetText(text);
-                                Clipboard.SetContent(dp);
-                                Clipboard.Flush();
-                                NotificationHost.ShowGlobal("地址已复制到剪切板", ToastLevel.Success);
-                            }
-                        }
-                        break;
-                    }
-                    else if (result == ContentDialogResult.Secondary)
-                    {
-                        var accId = joinContent.SelectedAccountId;
-                        var roleId = joinContent.SelectedRoleId;
-                        if (string.IsNullOrWhiteSpace(accId) || string.IsNullOrWhiteSpace(roleId)) continue;
-
-                        NotificationHost.ShowGlobal("正在准备白端资源，请稍后", ToastLevel.Success);
-                        var progress = new Progress<EntityProgressUpdate>(update =>
-                        {
-                            Log.Information("白端启动进度: {Message} ({Percent}%)", update.Message, update.Percent);
-                            DispatcherQueue.TryEnqueue(() => NotificationHost.ShowGlobal($"白端启动: {update.Message} ({update.Percent}%)", ToastLevel.Normal));
-                        });
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await RunOnStaAsync(() => new SelectAccount().Execute(accId));
-                                var rLaunch = await new LaunchWhiteGame(progress).Execute(accId, serverId, serverName, roleId);
-                                DispatcherQueue.TryEnqueue(() =>
-                                {
-                                    if (rLaunch.Success)
-                                        NotificationHost.ShowGlobal("白端启动成功", ToastLevel.Success);
-                                    else
-                                        NotificationHost.ShowGlobal("白端启动失败: " + (rLaunch.Message ?? "启动失败"), ToastLevel.Error);
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex, "白端启动失败");
-                                DispatcherQueue.TryEnqueue(() => NotificationHost.ShowGlobal("白端启动失败: " + ex.Message, ToastLevel.Error));
-                            }
-                        });
-                        break;
-                    }
-                    else if (result == ContentDialogResult.None && joinContent.AddRoleRequested)
-                    {
-                        var addRoleContent = new AddRoleContent();
-                        var dlg2 = new ThemedContentDialog
-                        {
-                            XamlRoot = this.XamlRoot,
-                            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                            Title = "添加角色",
-                            Content = addRoleContent,
-                            PrimaryButtonText = "添加",
-                            CloseButtonText = "关闭",
-                            DefaultButton = ContentDialogButton.Primary
-                        };
-                        var addRes = await dlg2.ShowAsync();
-                        if (addRes == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(addRoleContent.RoleName))
-                        {
-                            var roleName = addRoleContent.RoleName;
-                            var accId2 = joinContent.SelectedAccountId;
-                            if (!string.IsNullOrWhiteSpace(accId2))
-                                await RunOnStaAsync(() => new SelectAccount().Execute(accId2));
-                            var r2 = await RunOnStaAsync(() => new CreateRoleNamed().Execute(serverId, roleName));
-                            if (r2.Success)
-                            {
-                                roleItems = r2.Items.Select(x => new JoinServerContent.OptionItem { Label = x.Name, Value = x.Id }).ToList();
-                                NotificationHost.ShowGlobal("角色创建成功", ToastLevel.Success);
-                            }
-                        }
-                        joinContent.ResetAddRoleRequested();
-                        continue;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
+                await RunOnStaAsync(() => new SelectAccount().Execute(accId));
+                var r = await new LaunchWhiteGame(progress).Execute(accId, serverId, serverName, roleId);
+                DispatcherQueue.TryEnqueue(() => NotificationHost.ShowGlobal(r.Success ? "白端启动成功" : $"白端失败: {r.Message}", r.Success ? ToastLevel.Success : ToastLevel.Error));
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "打开服务器失败");
-                try
-                {
-                    var dlg = new ThemedContentDialog
-                    {
-                        XamlRoot = this.XamlRoot,
-                        Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                        Title = "错误",
-                        Content = new TextBlock { Text = ex.Message },
-                        CloseButtonText = "关闭"
-                    };
-                    await dlg.ShowAsync();
-                }
-                catch { }
+                Log.Error(ex, "白端启动失败");
+                DispatcherQueue.TryEnqueue(() => NotificationHost.ShowGlobal($"白端失败: {ex.Message}", ToastLevel.Error));
             }
-        }
-
-        private void ServersGrid_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            var panel = ServersGrid.ItemsPanelRoot as ItemsWrapGrid;
-            if (panel == null) return;
-            var width = e.NewSize.Width;
-            if (width <= 0) return;
-            var itemWidth = Math.Max(240, (width - 24) / 4);
-            panel.ItemWidth = itemWidth;
-        }
-
-        private void UpdatePageView()
-        {
-            try
-            {
-                if (PageInfoText != null) PageInfoText.Text = "第 " + _page + " 页";
-                if (PrevPageButton != null) PrevPageButton.IsEnabled = _page > 1;
-                if (NextPageButton != null) NextPageButton.IsEnabled = _hasMore;
-            }
-            catch { }
-        }
-
-        private void PrevPageButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_page <= 1) return;
-            _page--;
-            var q = (SearchBox?.Text ?? string.Empty);
-            Servers.Clear();
-            UpdatePageView();
-            _ = RefreshServers(q);
-        }
-
-        private void NextPageButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_hasMore) return;
-            _page++;
-            var q = (SearchBox?.Text ?? string.Empty);
-            Servers.Clear();
-            UpdatePageView();
-            _ = RefreshServers(q);
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        });
     }
+
+    async Task<List<RoleItem>?> AddRoleAsync(string serverId)
+    {
+        var addContent = new AddRoleContent();
+        var dlg = DialogService.Create(XamlRoot, "添加角色", addContent, "添加", null, "关闭");
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(addContent.RoleName)) return null;
+        var roleName = addContent.RoleName;
+        var r = await RunOnStaAsync(() => new CreateRoleNamed().Execute(serverId, roleName));
+        return r.Success ? r.Items : null;
+    }
+
+    void UpdatePaging()
+    {
+        if (PageInfoText != null) PageInfoText.Text = $"第 {_page} 页";
+        if (PrevPageButton != null) PrevPageButton.IsEnabled = _page > 1;
+        if (NextPageButton != null) NextPageButton.IsEnabled = _hasMore;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
-    

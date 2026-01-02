@@ -25,6 +25,7 @@ public class IrcClient : IDisposable
 {
     readonly GameConnection _conn;
     readonly IrcConnection _irc;
+    readonly CancellationTokenSource _cts = new();
     
     Timer? _heartbeat;
     volatile bool _running;
@@ -48,7 +49,7 @@ public class IrcClient : IDisposable
         _running = true;
 
         Log.Information("[IRC] 启动: {Id}, 玩家: {Name}", ServerId, playerName);
-        new Thread(() => Initialize(playerName)) { IsBackground = true }.Start();
+        Task.Run(() => Initialize(playerName), _cts.Token);
     }
 
     public void Stop()
@@ -63,7 +64,12 @@ public class IrcClient : IDisposable
 
     public void SendChat(string player, string msg) => _irc.SendChat(player, msg);
 
-    public void Dispose() => Stop();
+    public void Dispose()
+    {
+        _cts.Cancel();
+        Stop();
+        _cts.Dispose();
+    }
 
     void Initialize(string playerName)
     {
@@ -79,13 +85,13 @@ public class IrcClient : IDisposable
             SendStatus("§a[§bIRC§a] IRC 连接成功 Ciallo～(∠・ω< )⌒");
         }
 
-        new Thread(ListenLoop) { IsBackground = true, Name = $"IRC-{ServerId}" }.Start();
+        Task.Run(ListenLoop, _cts.Token);
         _heartbeat = new Timer(_ => OnHeartbeat(), null, 20000, 20000);
     }
 
     void ListenLoop()
     {
-        while (_running)
+        while (_running && !_cts.Token.IsCancellationRequested)
         {
             var line = _irc.ReadLine();
             
@@ -111,7 +117,11 @@ public class IrcClient : IDisposable
             if (count > 0)
                 SendStatus($"§e[§bIRC§e] 当前在线 {count} 人，使用 §a/irc 想说的话§e 聊天");
         }
-        catch { if (_running) _irc.Reconnect(); }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "[IRC] 心跳失败");
+            if (_running) _irc.Reconnect();
+        }
     }
 
     void OnChat(string username, string player, string message)
