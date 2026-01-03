@@ -239,6 +239,50 @@ public class AuthManager
         SaveToken();
         LoginStateChanged?.Invoke();
     }
+
+    public async Task<UserInfoResult> GetUserAsync()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(Token))
+            {
+                return new UserInfoResult { Success = false, Message = "未登录" };
+            }
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/getuser");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+            var response = await Http.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+            Log.Debug("[AuthManager] GetUser response: {Status} {Content}", response.StatusCode, content);
+
+            if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+            {
+                var result = JsonSerializer.Deserialize<UserInfoResponse>(content);
+                if (result != null)
+                {
+                    return new UserInfoResult
+                    {
+                        Success = true,
+                        Id = result.Id,
+                        Username = result.Username,
+                        CreatedAt = result.CreatedAt,
+                        LastLogin = result.LastLogin,
+                        Rank = result.Rank
+                    };
+                }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return new UserInfoResult { Success = false, Message = "Token 无效" };
+            }
+
+            return new UserInfoResult { Success = false, Message = "获取用户信息失败" };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "获取用户信息异常");
+            return new UserInfoResult { Success = false, Message = ex.Message };
+        }
+    }
 }
 
 public class AuthResult
@@ -273,6 +317,35 @@ public class TokenResponse
 
     [JsonPropertyName("username")]
     public string Username { get; set; } = string.Empty;
+}
+
+public class UserInfoResult
+{
+    public bool Success { get; set; }
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? LastLogin { get; set; }
+    public string? Rank { get; set; }
+    public string? Message { get; set; }
+}
+
+public class UserInfoResponse
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("username")]
+    public string Username { get; set; } = string.Empty;
+
+    [JsonPropertyName("createdAt")]
+    public DateTime? CreatedAt { get; set; }
+
+    [JsonPropertyName("lastLogin")]
+    public DateTime? LastLogin { get; set; }
+
+    [JsonPropertyName("rank")]
+    public string? Rank { get; set; }
 }
 
 public class ErrorResponse

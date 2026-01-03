@@ -49,15 +49,18 @@ public class Channel4399Register : IDisposable
     string password = RandomUtil.GetRandomString(8);
     string captchaId = RandomUtil.GenerateSessionId();
     string captchaUrl = "https://ptlogin.4399.com/ptlogin/captcha.do?captchaId=" + captchaId;
-    string captcha = await CaptchaRecognitionService.RecognizeOrManualInputAsync(captchaUrl, inputCaptchaAsync);
+    
+    var (captcha, usedUrl) = await CaptchaRecognitionService.RecognizeWithRetryAsync(captchaUrl, inputCaptchaAsync);
+    
+    var usedCaptchaId = ExtractCaptchaId(usedUrl) ?? captchaId;
     
     IdCard idCard = idCardFunc();
-    HttpResponseMessage async = await _register.GetAsync(BuildRegisterUrl(captchaId, captcha, account, password, idCard.IdNumber, idCard.Name));
+    HttpResponseMessage async = await _register.GetAsync(BuildRegisterUrl(usedCaptchaId, captcha, account, password, idCard.IdNumber, idCard.Name));
     if (!async.IsSuccessStatusCode)
       throw new Exception("Status Code:" + async.StatusCode);
     EnsureRegisterSuccess(await async.Content.ReadAsStringAsync());
     
-    _ = ReportCaptchaSuccessAsync(captchaUrl, captcha);
+    _ = ReportCaptchaSuccessAsync(usedUrl, captcha);
     
     Entity4399Account entity4399Account = new Entity4399Account
     {
@@ -65,6 +68,20 @@ public class Channel4399Register : IDisposable
       Password = password
     };
     return entity4399Account;
+  }
+
+  private static string? ExtractCaptchaId(string url)
+  {
+    try
+    {
+      var uri = new Uri(url);
+      var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+      return query["captchaId"];
+    }
+    catch
+    {
+      return null;
+    }
   }
 
   private static async Task ReportCaptchaSuccessAsync(string captchaUrl, string captchaText)

@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 namespace OpenNEL_WinUI.type;
 class AppInfo
 {
-    public const string AppVersion = "2.1";
+    public const string AppVersion = "2.2 - pre1";
 
     public const string GithubUrL = "https://github.com/FandMC/OpenNEL";
     

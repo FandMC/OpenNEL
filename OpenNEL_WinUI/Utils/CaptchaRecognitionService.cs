@@ -115,15 +115,50 @@ public static class CaptchaRecognitionService
 
     public static async Task<string> RecognizeOrManualInputAsync(
         string captchaUrl,
-        Func<string, Task<string>> manualInputAsync)
+        Func<string, Task<string>> manualInputAsync,
+        int maxRetries = 3)
     {
-        var result = await RecognizeFromUrlAsync(captchaUrl);
-        if (!string.IsNullOrWhiteSpace(result))
+        var (result, _) = await RecognizeWithRetryAsync(captchaUrl, manualInputAsync, maxRetries);
+        return result;
+    }
+
+    public static async Task<(string captcha, string usedUrl)> RecognizeWithRetryAsync(
+        string captchaUrl,
+        Func<string, Task<string>>? manualInputAsync = null,
+        int maxRetries = 3)
+    {
+        string currentUrl = captchaUrl;
+        for (int i = 0; i < maxRetries; i++)
         {
-            Log.Information("[CaptchaRecognition] 使用自动识别的验证码: {Result}", result);
-            return result;
+            if (i > 0)
+            {
+                currentUrl = RegenerateCaptchaUrl(captchaUrl);
+            }
+            var result = await RecognizeFromUrlAsync(currentUrl);
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                Log.Information("[CaptchaRecognition] 使用自动识别的验证码: {Result} (第{Attempt}次尝试)", result, i + 1);
+                return (result, currentUrl);
+            }
+            Log.Information("[CaptchaRecognition] 第{Attempt}次自动识别失败", i + 1);
+            if (i < maxRetries - 1)
+            {
+                await Task.Delay(200);
+            }
         }
-        Log.Information("[CaptchaRecognition] 自动识别失败，需要手动输入验证码");
-        return await manualInputAsync(captchaUrl);
+        Log.Information("[CaptchaRecognition] 自动识别{MaxRetries}次均失败", maxRetries);
+        if (manualInputAsync != null)
+        {
+            var manualResult = await manualInputAsync(currentUrl);
+            return (manualResult, currentUrl);
+        }
+        return (string.Empty, currentUrl);
+    }
+
+    private static string RegenerateCaptchaUrl(string originalUrl)
+    {
+        var uri = new Uri(originalUrl);
+        var newCaptchaId = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").Substring(0, 8);
+        return $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}?captchaId={newCaptchaId}";
     }
 }
