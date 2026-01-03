@@ -52,6 +52,11 @@ public class AuthManager
             if (File.Exists(TokenFilePath))
             {
                 Token = File.ReadAllText(TokenFilePath).Trim();
+                Log.Information("[AuthManager] Token 已加载: {Token}", Token);
+            }
+            else
+            {
+                Log.Information("[AuthManager] Token 文件不存在");
             }
         }
         catch (Exception ex)
@@ -64,13 +69,16 @@ public class AuthManager
     {
         try
         {
+            var fullPath = Path.GetFullPath(TokenFilePath);
             if (!string.IsNullOrEmpty(Token))
             {
                 File.WriteAllText(TokenFilePath, Token);
+                Log.Information("[AuthManager] Token 已保存到: {Path}, Token: {Token}", fullPath, Token);
             }
             else if (File.Exists(TokenFilePath))
             {
                 File.Delete(TokenFilePath);
+                Log.Information("[AuthManager] Token 文件已删除: {Path}", fullPath);
             }
         }
         catch (Exception ex)
@@ -283,6 +291,43 @@ public class AuthManager
             return new UserInfoResult { Success = false, Message = ex.Message };
         }
     }
+
+    public async Task<WebKeyResult> GenerateWebKeyAsync()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(Token))
+            {
+                return new WebKeyResult { Success = false, Message = "未登录" };
+            }
+            var hwid = Hwid.Compute();
+            var payload = JsonSerializer.Serialize(new { token = Token, hwid });
+            var response = await Http.PostAsync($"{BaseUrl}/webkey",
+                new StringContent(payload, Encoding.UTF8, "application/json"));
+            var content = await response.Content.ReadAsStringAsync();
+            Log.Debug("[AuthManager] WebKey response: {Status} {Content}", response.StatusCode, content);
+
+            if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
+            {
+                var result = JsonSerializer.Deserialize<WebKeyResponse>(content);
+                if (!string.IsNullOrEmpty(result?.Key))
+                {
+                    return new WebKeyResult { Success = true, Key = result.Key };
+                }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return new WebKeyResult { Success = false, Message = "认证失败" };
+            }
+
+            return new WebKeyResult { Success = false, Message = "生成密钥失败" };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "生成网页密钥异常");
+            return new WebKeyResult { Success = false, Message = ex.Message };
+        }
+    }
 }
 
 public class AuthResult
@@ -352,4 +397,17 @@ public class ErrorResponse
 {
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
+}
+
+public class WebKeyResult
+{
+    public bool Success { get; set; }
+    public string Key { get; set; } = string.Empty;
+    public string? Message { get; set; }
+}
+
+public class WebKeyResponse
+{
+    [JsonPropertyName("key")]
+    public string Key { get; set; } = string.Empty;
 }

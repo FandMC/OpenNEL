@@ -25,6 +25,7 @@ using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using OpenNEL_WinUI.Manager;
 using Windows.UI;
+using Windows.ApplicationModel.DataTransfer;
 using Serilog;
 
 namespace OpenNEL_WinUI
@@ -170,6 +171,86 @@ namespace OpenNEL_WinUI
             {
                 textBlock.Inlines.Add(new Run { Text = "普通用户" });
             }
+        }
+
+        private async void WebKeyButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebKeyButton.IsEnabled = false;
+            try
+            {
+                var result = await AuthManager.Instance.GenerateWebKeyAsync();
+                if (result.Success)
+                {
+                    await ShowWebKeyDialogAsync(result.Key);
+                }
+                else
+                {
+                    NotificationHost.ShowGlobal(result.Message ?? "生成失败", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "生成网页密钥失败");
+                NotificationHost.ShowGlobal("生成失败", ToastLevel.Error);
+            }
+            finally
+            {
+                WebKeyButton.IsEnabled = true;
+            }
+        }
+
+        private async System.Threading.Tasks.Task ShowWebKeyDialogAsync(string key)
+        {
+            var keyBox = new TextBox
+            {
+                Text = key,
+                IsReadOnly = true,
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
+            var copyButton = new Button
+            {
+                Content = "复制密钥",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 12, 0, 0)
+            };
+            copyButton.Click += (s, e) =>
+            {
+                var dp = new DataPackage();
+                dp.SetText(key);
+                Clipboard.SetContent(dp);
+                NotificationHost.ShowGlobal("密钥已复制", ToastLevel.Success);
+            };
+
+            var content = new StackPanel
+            {
+                Children =
+                {
+                    keyBox,
+                    copyButton,
+                    new TextBlock
+                    {
+                        Text = "该密钥 5 分钟后失效，仅可使用一次",
+                        FontSize = 12,
+                        Foreground = new SolidColorBrush(Colors.Gray),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 8, 0, 0)
+                    }
+                }
+            };
+
+            var dialog = new ThemedContentDialog
+            {
+                XamlRoot = this.XamlRoot,
+                Title = "网页登录密钥",
+                Content = content,
+                CloseButtonText = "关闭"
+            };
+
+            await dialog.ShowAsync();
         }
     }
 }
