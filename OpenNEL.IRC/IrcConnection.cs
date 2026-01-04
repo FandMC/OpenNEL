@@ -88,7 +88,15 @@ public class IrcConnection : IDisposable
     {
         Disconnect();
         Thread.Sleep(3000);
-        if (Connect() && _playerName != null) Report(_playerName);
+        if (Connect() && _playerName != null)
+        {
+            var name = _playerName;
+            Task.Run(() =>
+            {
+                Thread.Sleep(500);
+                Report(name);
+            });
+        }
     }
 
     public string? ReadLine()
