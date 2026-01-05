@@ -24,8 +24,8 @@ using Serilog;
 
 namespace OpenNEL.IRC.Packet;
 
-[RegisterPacket(EnumConnectionState.Play, EnumPacketDirection.ServerBound, 4, EnumProtocolVersion.V1206, false)]
-public class CChatCommandIrc : IPacket
+[RegisterPacket(EnumConnectionState.Play, EnumPacketDirection.ServerBound, 2, EnumProtocolVersion.V1210, false)]
+public class CChatCommandIrcV1210 : IPacket
 {
     public EnumProtocolVersion ClientProtocolVersion { get; set; }
 
@@ -87,34 +87,9 @@ public class CChatCommandIrc : IPacket
         try
         {
             if (connection.State != EnumConnectionState.Play) return;
-            if (connection.ProtocolVersion == EnumProtocolVersion.V1122)
-            {
-                CChatCommandIrcV1122.SendLocalMessage(connection, message);
-                return;
-            }
-            if (connection.ProtocolVersion == EnumProtocolVersion.V1200)
-            {
-                CChatCommandIrcV1200.SendLocalMessage(connection, message);
-                return;
-            }
-            if (connection.ProtocolVersion == EnumProtocolVersion.V1210)
-            {
-                CChatCommandIrcV1210.SendLocalMessage(connection, message);
-                return;
-            }
-            if (connection.ProtocolVersion == EnumProtocolVersion.V108X)
-            {
-                CChatCommandIrcV108X.SendLocalMessage(connection, message);
-                return;
-            }
-            if (connection.ProtocolVersion == EnumProtocolVersion.V1076)
-            {
-                CChatCommandIrcV107X.SendLocalMessage(connection, message);
-                return;
-            }
-            if (connection.ProtocolVersion != EnumProtocolVersion.V1206) return;
+            if (connection.ProtocolVersion != EnumProtocolVersion.V1210) return;
             var buffer = Unpooled.Buffer();
-            buffer.WriteVarInt(108);
+            buffer.WriteVarInt(0x6C);
             var textBytes = System.Text.Encoding.UTF8.GetBytes(message);
             buffer.WriteByte(0x08);
             buffer.WriteShort(textBytes.Length);

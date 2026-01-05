@@ -25,7 +25,7 @@ using Serilog;
 namespace OpenNEL.IRC.Packet;
 
 [RegisterPacket(EnumConnectionState.Play, EnumPacketDirection.ServerBound, 2, EnumProtocolVersion.V1200, false)]
-public class CChatCommandIRCV1200 : IPacket
+public class CChatCommandIrcV1200 : IPacket
 {
     public EnumProtocolVersion ClientProtocolVersion { get; set; }
 
