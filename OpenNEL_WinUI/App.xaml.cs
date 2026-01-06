@@ -57,6 +57,7 @@ namespace OpenNEL_WinUI
                 {
                     AppState.Debug = Debug.Get();
                     AppState.AutoDisconnectOnBan = SettingManager.Instance.Get().AutoDisconnectOnBan;
+                    AppState.IrcEnabled = SettingManager.Instance.Get().IrcEnabled;
                     CrcSalt.TokenProvider = () => AuthManager.Instance.Token ?? "";
                     KillVeta.Run();
                     AppState.Services = await CreateServicesAsync();
@@ -110,6 +111,10 @@ namespace OpenNEL_WinUI
             PacketManager.Instance.RegisterPacketFromAssembly(typeof(IrcManager).Assembly);
             PacketManager.Instance.EnsureRegistered();
             RegisterIrcHandler();
+            if (SettingManager.Instance.Get().WeakNetwork)
+            {
+                HttpUrlRewriter.Initialize();
+            }
             try
             {
                 PluginManager.Instance.EnsureUninstall();
@@ -137,6 +142,7 @@ namespace OpenNEL_WinUI
 
         static void RegisterIrcHandler()
         {
+            IrcManager.Enabled = AppState.IrcEnabled;
             IrcEventHandler.Register(
                 () => AuthManager.Instance.Token ?? "",
                 Utils.Hwid.Compute()

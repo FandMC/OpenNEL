@@ -28,6 +28,8 @@ public class SettingData
     [JsonPropertyName("autoCopyIpOnStart")] public bool AutoCopyIpOnStart { get; set; } = false;
     [JsonPropertyName("debug")] public bool Debug { get; set; } = false;
     [JsonPropertyName("autoDisconnectOnBan")] public string AutoDisconnectOnBan { get; set; } = "none";
+    [JsonPropertyName("ircEnabled")] public bool IrcEnabled { get; set; } = true;
+    [JsonPropertyName("weakNetwork")] public bool WeakNetwork { get; set; } = false;
     [JsonPropertyName("socks5Enabled")] public bool Socks5Enabled { get; set; } = false;
 
     [JsonPropertyName("socks5Address")] public string Socks5Address { get; set; } = string.Empty;

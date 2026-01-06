@@ -56,6 +56,7 @@ public class CChatCommandIrcV1200 : IPacket
     public bool HandlePacket(GameConnection connection)
     {
         if (!_isIrcCommand) return false;
+        if (!IrcManager.Enabled) return false;
 
         var content = _command.Length > 4 ? _command.Substring(4).Trim() : string.Empty;
 

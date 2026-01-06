@@ -28,5 +28,6 @@ internal static class AppState
     public static Services? Services;
     public static bool Debug;
     public static string AutoDisconnectOnBan;
+    public static bool IrcEnabled = true;
     public static bool Pre = AppInfo.AppVersion.Contains("pre", StringComparison.OrdinalIgnoreCase);
 }

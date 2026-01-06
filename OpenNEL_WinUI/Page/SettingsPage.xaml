@@ -43,6 +43,8 @@
                         <ComboBoxItem Tag="switch" Content="关闭通道并启动其他角色"/>
                     </ComboBox>
                     <ToggleSwitch x:Name="DebugSwitch" Toggled="DebugSwitch_Toggled" OnContent="开" OffContent="关" Header="调试模式"/>
+                    <ToggleSwitch x:Name="IrcSwitch" Toggled="IrcSwitch_Toggled" OnContent="开" OffContent="关" Header="IRC 跨服聊天"/>
+                    <ToggleSwitch x:Name="WeakNetworkSwitch" Toggled="WeakNetworkSwitch_Toggled" OnContent="开" OffContent="关" Header="弱网络模式"/>
                 </StackPanel>
             </Grid>
 

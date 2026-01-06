@@ -32,6 +32,7 @@ public static class IrcManager
 {
     static readonly ConcurrentDictionary<GameConnection, IrcClient> _clients = new();
     
+    public static bool Enabled { get; set; } = true;
     public static Func<string>? TokenProvider { get; set; }
     public static string Hwid { get; set; } = string.Empty;
     public static Action<GameConnection>? OnClientRemoved { get; set; }

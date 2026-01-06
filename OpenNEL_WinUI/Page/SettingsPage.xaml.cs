@@ -15,11 +15,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+using System;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
 using OpenNEL_WinUI.Manager;
 using OpenNEL_WinUI.type;
-using System;
+using OpenNEL.IRC;
+using OpenNEL_WinUI.Utils;
 
 namespace OpenNEL_WinUI
 {
@@ -54,6 +57,8 @@ namespace OpenNEL_WinUI
             }
             if (AutoDisconnectOnBanCombo.SelectedIndex < 0) AutoDisconnectOnBanCombo.SelectedIndex = 0;
             DebugSwitch.IsOn = s?.Debug ?? false;
+            IrcSwitch.IsOn = s?.IrcEnabled ?? true;
+            WeakNetworkSwitch.IsOn = s?.WeakNetwork ?? false;
             Socks5EnableSwitch.IsOn = s?.Socks5Enabled ?? false;
             Socks5HostBox.Text = s?.Socks5Address ?? string.Empty;
             Socks5PortBox.Value = s?.Socks5Port ?? 1080;
@@ -115,6 +120,32 @@ namespace OpenNEL_WinUI
             data.Debug = DebugSwitch.IsOn;
             SettingManager.Instance.Update(data);
             AppState.Debug = DebugSwitch.IsOn;
+        }
+
+        private void IrcSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_initing) return;
+            var data = SettingManager.Instance.Get();
+            data.IrcEnabled = IrcSwitch.IsOn;
+            SettingManager.Instance.Update(data);
+            AppState.IrcEnabled = IrcSwitch.IsOn;
+            IrcManager.Enabled = IrcSwitch.IsOn;
+        }
+
+        private void WeakNetworkSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_initing) return;
+            var data = SettingManager.Instance.Get();
+            data.WeakNetwork = WeakNetworkSwitch.IsOn;
+            SettingManager.Instance.Update(data);
+            if (WeakNetworkSwitch.IsOn)
+            {
+                HttpUrlRewriter.Initialize();
+            }
+            else
+            {
+                HttpUrlRewriter.Shutdown();
+            }
         }
 
         private void Socks5HostBox_TextChanged(object sender, TextChangedEventArgs e)

@@ -48,6 +48,8 @@ public static class IrcEventHandler
 
     static void OnLoginSuccess(EventLoginSuccess args)
     {
+        if (!IrcManager.Enabled) return;
+        
         var nickName = args.Connection.NickName;
         if (string.IsNullOrEmpty(nickName)) return;
 
