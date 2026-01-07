@@ -6,14 +6,6 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using OpenNEL.IRC.Packet;
 using Codexus.Development.SDK.Connection;
@@ -24,116 +16,117 @@ namespace OpenNEL.IRC;
 public class IrcClient : IDisposable
 {
     readonly GameConnection _conn;
-    readonly IrcConnection _irc;
-    readonly CancellationTokenSource _cts = new();
-    
-    Timer? _heartbeat;
+    readonly string _token;
+    readonly string _hwid;
+    readonly IrcPlayerList _players = new();
+
+    TcpLineClient? _tcp;
+    bool _welcomed;
+    Timer? _timer;
     volatile bool _running;
 
-    public IReadOnlyDictionary<string, string> Players => _irc.Players;
-    public event EventHandler<IrcChatEventArgs>? ChatReceived;
-    public GameConnection Connection => _conn;
     public string ServerId => _conn.GameId;
+    public GameConnection Connection => _conn;
+    public IReadOnlyDictionary<string, string> Players => _players.All;
+    public event EventHandler<IrcChatEventArgs>? ChatReceived;
 
     public IrcClient(GameConnection conn, Func<string>? tokenProvider, string hwid)
     {
         _conn = conn;
-        _irc = new IrcConnection("api.fandmc.cn", 9527);
-        _irc.SetCredentials(tokenProvider?.Invoke() ?? "", hwid, conn.GameId);
-        _irc.ChatReceived += OnChat;
+        _token = tokenProvider?.Invoke() ?? "";
+        _hwid = hwid;
     }
 
     public void Start(string playerName)
     {
         if (_running) return;
         _running = true;
-
         Log.Information("[IRC] 启动: {Id}, 玩家: {Name}", ServerId, playerName);
-        Task.Run(() => Initialize(playerName), _cts.Token);
+        Task.Run(() => Run(playerName));
     }
 
     public void Stop()
     {
-        if (!_running) return;
         _running = false;
-
-        _heartbeat?.Dispose();
-        _irc.Disconnect();
-        Log.Information("[IRC] 停止: {Id}", ServerId);
+        _timer?.Dispose();
+        _tcp?.Close();
     }
 
-    public void SendChat(string player, string msg) => _irc.SendChat(player, msg);
+    public void SendChat(string player, string msg)
+    {
+        var cmd = IrcProtocol.Chat(_token, _hwid, ServerId, player, msg);
+        Log.Information("[IRC] 发送: {Cmd}", cmd);
+        _tcp?.Send(cmd);
+    }
 
     public void Dispose()
     {
-        _cts.Cancel();
         Stop();
-        _irc.Dispose();
-        _cts.Dispose();
+        _tcp?.Dispose();
     }
 
-    void Initialize(string playerName)
+    void Run(string playerName)
     {
-        SendStatus("§e[§bIRC§e] 正在连接 IRC 服务器...");
-
-        if (!_irc.Connect())
+        while (_running)
         {
-            SendStatus("§c[§bIRC§c] IRC 连接失败，将自动重试");
-        }
-        else
-        {
-            _irc.Report(playerName);
-            SendStatus("§a[§bIRC§a] IRC 连接成功 Ciallo～(∠・ω< )⌒");
-        }
-
-        Task.Run(ListenLoop, _cts.Token);
-        _heartbeat = new Timer(_ => OnHeartbeat(), null, 20000, 20000);
-    }
-
-    void ListenLoop()
-    {
-        while (_running && !_cts.Token.IsCancellationRequested)
-        {
-            var line = _irc.ReadLine();
-            
-            if (line == null)
+            try
             {
-                if (_running) _irc.Reconnect();
-                continue;
+                _tcp = new TcpLineClient(IrcProtocol.Host, IrcProtocol.Port);
+                _tcp.Connect();
+
+                _welcomed = false;
+                _tcp.Send(IrcProtocol.Report(_token, _hwid, ServerId, playerName));
+                _timer = new Timer(_ => _tcp?.Send(IrcProtocol.Get(_token, _hwid, ServerId)), null, 1000, 20000);
+
+                while (_running)
+                {
+                    var line = _tcp.Read();
+                    if (line == null) break;
+                    Process(line);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "[IRC] 异常");
             }
 
-            if (!string.IsNullOrEmpty(line))
-                _irc.ProcessLine(line);
+            _timer?.Dispose();
+            _tcp?.Close();
+            if (_running) Thread.Sleep(3000);
         }
     }
 
-    void OnHeartbeat()
+    void Process(string line)
     {
-        if (!_running) return;
+        Log.Debug("[IRC] 收到: {Line}", line);
+        var msg = IrcProtocol.Parse(line);
+        if (msg == null) return;
 
-        try
+        if (msg.IsPlayerList)
         {
-            _irc.RefreshPlayers();
-            var count = _irc.Players.Count;
-            if (count > 0)
-                SendStatus($"§e[§bIRC§e] 当前在线 {count} 人，使用 §a/irc 想说的话§e 聊天");
+            _players.Update(msg.Data);
+            if (!_welcomed)
+            {
+                _welcomed = true;
+                Msg("§a[§bIRC§a] IRC 连接成功 Ciallo～(∠・ω< )⌒");
+            }
+            if (_players.Count > 0)
+                Msg($"§e[§bIRC§e] 当前在线 {_players.Count} 人，使用 §a/irc 想说的话§e 聊天");
         }
-        catch (Exception ex)
+        else if (msg.IsChat)
         {
-            Log.Warning(ex, "[IRC] 心跳失败");
-            if (_running) _irc.Reconnect();
+            ChatReceived?.Invoke(this, new IrcChatEventArgs
+            {
+                Username = msg.Parts[1],
+                PlayerName = msg.Parts[2],
+                Message = string.Join("|", msg.Parts.Skip(3))
+            });
         }
     }
 
-    void OnChat(string username, string player, string message)
+    void Msg(string msg)
     {
-        ChatReceived?.Invoke(this, new IrcChatEventArgs
-        {
-            Username = username,
-            PlayerName = player,
-            Message = message
-        });
+        Log.Information("[IRC] 显示消息: {Msg}, 版本: {Ver}", msg, _conn.ProtocolVersion);
+        CChatCommandIrc.SendLocalMessage(_conn, msg);
     }
-
-    void SendStatus(string msg) => CChatCommandIrc.SendLocalMessage(_conn, msg);
 }

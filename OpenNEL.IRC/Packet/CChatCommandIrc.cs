@@ -6,14 +6,6 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using DotNetty.Buffers;
 using Codexus.Development.SDK.Connection;
@@ -35,6 +27,7 @@ public class CChatCommandIrc : IPacket
 
     public void ReadFromBuffer(IByteBuffer buffer)
     {
+        Log.Information("[IRC] CChatCommandIrc.ReadFromBuffer called");
         _rawBytes = new byte[buffer.ReadableBytes];
         buffer.GetBytes(buffer.ReaderIndex, _rawBytes);
 
@@ -43,6 +36,7 @@ public class CChatCommandIrc : IPacket
 
         _isIrcCommand = _command.StartsWith("irc ", StringComparison.OrdinalIgnoreCase)
                      || _command.Equals("irc", StringComparison.OrdinalIgnoreCase);
+        if (_isIrcCommand) Log.Information("[IRC] 拦截到命令: {Cmd}", _command);
     }
 
     public void WriteToBuffer(IByteBuffer buffer)
@@ -55,6 +49,7 @@ public class CChatCommandIrc : IPacket
 
     public bool HandlePacket(GameConnection connection)
     {
+        Log.Information("[IRC] HandlePacket: cmd={Cmd}, isIrc={IsIrc}", _command, _isIrcCommand);
         if (!_isIrcCommand) return false;
         if (!IrcManager.Enabled) return false;
 
@@ -74,6 +69,7 @@ public class CChatCommandIrc : IPacket
         }
 
         var ircClient = IrcManager.Get(connection);
+        Log.Information("[IRC] Get client: {Client}, conn={Conn}", ircClient != null, connection.GameId);
         if (ircClient == null)
         {
             SendLocalMessage(connection, "§c[IRC] IRC 未连接");

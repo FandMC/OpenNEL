@@ -6,14 +6,6 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -21,6 +13,8 @@ using System.Collections.ObjectModel;
 using OpenNEL_WinUI.Handlers.Plugin;
 using System;
 using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Serilog;
 using System.Diagnostics;
 using OpenNEL_WinUI.Utils;
@@ -37,6 +31,7 @@ namespace OpenNEL_WinUI
         {
             InitializeComponent();
             LoadPlugins();
+            _ = CheckUpdatesAsync();
         }
 
         private void LoadPlugins()
@@ -49,16 +44,76 @@ namespace OpenNEL_WinUI
             }
         }
 
+        private async Task CheckUpdatesAsync()
+        {
+            try
+            {
+                var updates = await new CheckPluginUpdates().Execute(Plugins);
+                
+                foreach (var plugin in Plugins)
+                {
+                    if (updates.TryGetValue(plugin.Id, out var info))
+                    {
+                        plugin.NeedUpdate = info.HasUpdate;
+                        plugin.LatestVersion = info.LatestVersion;
+                        plugin.DownloadUrl = info.DownloadUrl;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "检测更新失败");
+            }
+        }
+
 
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
             new RestartGateway().Execute();
         }
 
-        private void UpdatePluginButton_Click(object sender, RoutedEventArgs e)
+        private async void UpdatePluginButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is PluginViewModel plugin)
             {
+                if (string.IsNullOrEmpty(plugin.DownloadUrl))
+                {
+                    NotificationHost.ShowGlobal("无法获取下载地址", ToastLevel.Error);
+                    return;
+                }
+
+                btn.IsEnabled = false;
+                btn.Content = "更新中...";
+                
+                try
+                {
+                    var infoJson = JsonSerializer.Serialize(new
+                    {
+                        plugin = new
+                        {
+                            name = plugin.Name,
+                            version = plugin.LatestVersion,
+                            downloadUrl = plugin.DownloadUrl
+                        }
+                    });
+                    
+                    await new UpdatePlugin().Execute(plugin.Id, plugin.Version, infoJson);
+                    
+                    plugin.Version = plugin.LatestVersion;
+                    plugin.NeedUpdate = false;
+                    
+                    NotificationHost.ShowGlobal($"插件 {plugin.Name} 更新成功", ToastLevel.Success);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "更新插件失败");
+                    NotificationHost.ShowGlobal($"更新失败: {ex.Message}", ToastLevel.Error);
+                }
+                finally
+                {
+                    btn.Content = "更新";
+                    btn.IsEnabled = true;
+                }
             }
         }
 
